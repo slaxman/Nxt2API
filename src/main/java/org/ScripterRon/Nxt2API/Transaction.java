@@ -34,16 +34,16 @@ import java.util.List;
  * <p>
  * The transaction identifier is not unique, even within the same
  * child chain.  As a result, the transaction full hash is used to
- * identify a transaction.  The transaction identifier is provided as
- * a means to look up a transaction in a hash table.
+ * identify a transaction.  The transaction identifier is still
+ * provided for use as hash table index.
  */
 public class Transaction {
 
     /** Transaction length */
-    private static final int BASE_LENGTH = 149;
+    public static final int BASE_LENGTH = 149;
 
     /** Signature offset in the transaction bytes */
-    private static final int SIGNATURE_OFFSET = 69;
+    public static final int SIGNATURE_OFFSET = 69;
 
     /** Zero signature */
     private static final byte[] ZERO_SIGNATURE = new byte[64];
@@ -92,12 +92,6 @@ public class Transaction {
 
     /** Transaction height */
     private int height;
-
-    /** Transaction attachment bytes */
-    private final byte[] attachmentBytes;
-
-    /** Transaction attachment JSON */
-    private final Response attachmentJSON;
 
     /**
      * Process a transaction list
@@ -154,8 +148,6 @@ public class Transaction {
         }
         ecBlockId = response.getId("ecBlockId");
         ecBlockHeight = response.getInt("ecBlockHeight");
-        attachmentBytes = null;
-        attachmentJSON = response.getObject("attachment");
         int type = response.getInt("type");
         int subtype = response.getInt("subtype");
         transactionType = Nxt.getTransactionType(type, subtype);
@@ -197,8 +189,6 @@ public class Transaction {
         ecBlockHeight = buffer.getInt();
         ecBlockId = buffer.getLong();
         transactionType = Nxt.getTransactionType(type, subtype);
-        attachmentBytes = Arrays.copyOfRange(transactionBytes, BASE_LENGTH, transactionBytes.length);
-        attachmentJSON = null;
         height = 0;
         blockId = 0;
         //
@@ -370,30 +360,6 @@ public class Transaction {
      */
     public void setHeight(int height) {
         this.height = height;
-    }
-
-    /**
-     * Get the attachment JSON
-     * <p>
-     * The attachment JSON is available only for a transaction created from a JSON
-     * response.
-     *
-     * @return                      JSON attachment response or null
-     */
-    public Response getAttachmentJSON() {
-        return attachmentJSON;
-    }
-
-    /**
-     * Get the attachment bytes
-     * <p>
-     * The attachment bytes are available only for a transaction created from a
-     * byte stream.
-     *
-     * @return                      Attachment bytes or null
-     */
-    public byte[] getAttachmentBytes() {
-        return attachmentBytes;
     }
 
     /**

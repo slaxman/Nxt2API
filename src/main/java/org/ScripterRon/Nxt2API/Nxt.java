@@ -45,6 +45,9 @@ import org.ScripterRon.JSON.JSONParser;
  */
 public class Nxt {
 
+    /** FXT chain name */
+    public static final String FXT_CHAIN = "ARDR";
+
     /** Nxt chains */
     private static final Map<Integer, Chain> chains = new HashMap<>();
 
@@ -102,6 +105,7 @@ public class Nxt {
         //
         // Get the chains
         //
+        chains.clear();
         ((Map<String, Object>)response.get("chainProperties")).values().forEach(entry -> {
             Response chainProperties = new Response((Map<String, Object>)entry);
             Chain chain = new Chain(chainProperties.getString("name"),
@@ -112,6 +116,7 @@ public class Nxt {
         //
         // Get the transaction types
         //
+        transactionTypes.clear();
         ((Map<String, Object>)response.get("transactionTypes")).entrySet().forEach(entry -> {
             int type = Integer.valueOf(entry.getKey());
             Map<String, Object> subtypes =
@@ -155,6 +160,20 @@ public class Nxt {
     }
 
     /**
+     * Get the chain for the supplied chain name
+     *
+     * @param   chainName           Chain name
+     * @return                      Chain (null if the chain is not defined)
+     */
+    public static Chain getChain(String chainName) {
+        for (Chain chain : chains.values()) {
+            if (chain.getName().equals(chainName))
+                return chain;
+        }
+        return null;
+    }
+
+    /**
      * Get the transaction type for the specified type and subtype
      *
      * @param   type                Transaction type
@@ -166,13 +185,22 @@ public class Nxt {
     }
 
     /**
-     * Broadcast a signed transaction
+     * Sign and broadcast a transaction
+     * <p>
+     * The transaction is signed locally and the secret phrase is not sent
+     * to the Nxt server.
      *
-     * @param       transactionBytes        Transaction bytes
+     * @param       transactionBytes        Unsigned transaction bytes
+     * @param       secretPhrase            Account secret phrase
      * @return                              Broadcast response
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      KeyException            Unable to sign the transaction
+     * @throws      NxtException            Nxt server returned an error
      */
-    public static Response broadcastTransaction(byte[] transactionBytes) throws IOException {
+    public static Response broadcastTransaction(byte[] transactionBytes, String secretPhrase)
+                                            throws IOException, KeyException {
+        byte[] signature = Crypto.sign(transactionBytes, secretPhrase);
+        System.arraycopy(signature, 0, transactionBytes, Transaction.SIGNATURE_OFFSET, 64);
         return issueRequest("broadcastTransaction",
                 "transactionBytes=" + Utils.toHexString(transactionBytes),
                 DEFAULT_READ_TIMEOUT);
@@ -191,6 +219,7 @@ public class Nxt {
      * @param       removeEvents            TRUE to remove events from an existing event list
      * @return                              Event registration response
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response eventRegister(List<String> events, long token,
                     boolean addEvents, boolean removeEvents) throws IOException {
@@ -225,6 +254,7 @@ public class Nxt {
      * @param       timeout                 Wait timeout (seconds)
      * @return                              Event list
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static List<Event> eventWait(long token, int timeout) throws IOException {
         List<Event> events = new ArrayList<>();
@@ -246,8 +276,9 @@ public class Nxt {
      * @param       fee                     Transaction fee
      * @param       rate                    Bundler rate
      * @param       publicKey               Sender public key
-     * @return                              Generated transaction
+     * @return                              Unsigned transaction
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response exchangeCoins(Chain chain, Chain exchangeChain, long amount, long price,
                     long fee, long rate, byte[] publicKey) throws IOException {
@@ -267,6 +298,7 @@ public class Nxt {
      * @param       accountId               Account identifier
      * @return                              Account information
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response getAccount(long accountId) throws IOException {
         return issueRequest("getAccount",
@@ -281,6 +313,7 @@ public class Nxt {
      * @param       chain                   Chain
      * @return                              Account balance
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response getBalance(long accountId, Chain chain) throws IOException {
         return issueRequest("getBalance",
@@ -294,6 +327,7 @@ public class Nxt {
      *
      * @return                              Blockchain status
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response getBlockchainStatus() throws IOException {
         return issueRequest("getBlockchainStatus", null, DEFAULT_READ_TIMEOUT);
@@ -308,6 +342,7 @@ public class Nxt {
      * @param       lastIndex               Index of last transaction to return
      * @return                              Account transactions
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response getBlockchainTransactions(long accountId, Chain chain,
                                             int firstIndex, int lastIndex) throws IOException {
@@ -323,6 +358,7 @@ public class Nxt {
      *
      * @return                              Bundler rates
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response getBundlerRates() throws IOException {
         return issueRequest("getBundlerRates", null, DEFAULT_READ_TIMEOUT);
@@ -334,6 +370,7 @@ public class Nxt {
      * @param       chain                   Exchange orders for this chain
      * @return                              Exchange orders
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response getCoinExchangeOrders(Chain chain) throws IOException {
         return issueRequest("getCoinExchangeOrders",
@@ -346,6 +383,7 @@ public class Nxt {
      *
      * @return                              Server constants
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response getConstants() throws IOException {
         return issueRequest("getConstants", null, DEFAULT_READ_TIMEOUT);
@@ -358,6 +396,7 @@ public class Nxt {
      * @param       chain                   Transaction chain
      * @return                              Transaction
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response getTransaction(byte[] fullHash, Chain chain) throws IOException {
         return issueRequest("getTransaction",
@@ -372,6 +411,7 @@ public class Nxt {
      * @param       chain                   Transaction chain
      * @return                              Transaction
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response getUnconfirmedTransactions(long accountId, Chain chain) throws IOException {
         return issueRequest("getUnconfirmedTransactions",
@@ -390,6 +430,7 @@ public class Nxt {
      * @param       publicKey               Sender public key
      * @return                              Transaction
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response sendMoney(long recipientId, Chain chain, long amount, long fee,
                                             long exchangeRate, byte[] publicKey)
@@ -411,6 +452,7 @@ public class Nxt {
      * @param       readTimeout             Read timeout (milliseconds)
      * @return                              Parsed JSON response
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     @SuppressWarnings("unchecked")
     private static Response issueRequest(String requestType, String requestParams, int readTimeout)
@@ -491,7 +533,7 @@ public class Nxt {
      */
     private static void sslInit() {
         try {
-            SSLContext context = SSLContext.getInstance("TLSv1");
+            SSLContext context = SSLContext.getInstance("TLS");
             context.init(null, null, new SecureRandom());
             HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());
             sslInitialized = true;

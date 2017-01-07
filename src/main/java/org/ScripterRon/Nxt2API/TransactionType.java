@@ -43,6 +43,33 @@ public class TransactionType {
     }
 
     /**
+     * Get the type
+     *
+     * @return                      Type
+     */
+    public int getType() {
+        return type;
+    }
+
+    /**
+     * Get the subtype
+     *
+     * @return                      Subtype
+     */
+    public int getSubtype() {
+        return subtype;
+    }
+
+    /**
+     * Get the name
+     *
+     * @return                      Name
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
      * Get the hash code for this transaction type
      *
      * @return                      Hash code
