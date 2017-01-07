@@ -32,7 +32,7 @@ public abstract class Attachment {
         FXT_ORDINARY_PAYMENT(-2, 0, new PaymentAttachment()),
         FXT_BALANCE_LEASING(-3, 0, null),
         FXT_EXCHANGE_ORDER_ISSUE(-4, 0, new ExchangeOrderIssueAttachment()),
-        FXT_EXCHANGE_ORDER_CANCEL(-4, 1, null),
+        FXT_EXCHANGE_ORDER_CANCEL(-4, 1, new ExchangeOrderCancelAttachment()),
         ORDINARY_PAYMENT(0, 0, new PaymentAttachment()),
         ARBITRARY_MESSAGE(1, 0, new MessagingAttachment()),
         ASSET_ISSUANCE(2, 0, null),
@@ -59,7 +59,7 @@ public abstract class Attachment {
         CURRENCY_EXCHANGE_OFFER(5, 4, null),
         CURRENCY_EXCHANGE_BUY(5, 5, null),
         CURRENCY_EXCHANGE_SELL(5, 6, null),
-        CURRENCY_MINTING(5, 7, null),
+        CURRENCY_MINTING(5, 7, new CurrencyMintingAttachment()),
         CURRENCY_DELETION(5, 8, null),
         TAGGED_DATA_UPLOAD(6, 0, null),
         SHUFFLING_CREATION(7, 0, null),
@@ -79,7 +79,7 @@ public abstract class Attachment {
         ACCOUNT_PROPERTY_SET(10, 1, null),
         ACCOUNT_PROPERTY_DELETE(10, 2, null),
         EXCHANGE_ORDER_ISSUE(11, 0, new ExchangeOrderIssueAttachment()),
-        EXCHANGE_ORDER_CANCEL(1, 1, null);
+        EXCHANGE_ORDER_CANCEL(1, 1, new ExchangeOrderCancelAttachment());
 
         private static final Map<Integer, AttachmentType> typeMap = new HashMap<>();
         static {
@@ -228,7 +228,7 @@ public abstract class Attachment {
 
         @Override
         protected Attachment parseAttachment(byte[] txBytes)
-                throws IllegalArgumentException, NumberFormatException {
+                throws BufferUnderflowException, IllegalArgumentException {
             return new ExchangeOrderIssueAttachment(txBytes);
         }
 
@@ -315,7 +315,7 @@ public abstract class Attachment {
 
         @Override
         protected Attachment parseAttachment(Response txJSON)
-                throws IdentifierException, IllegalArgumentException, NumberFormatException {
+                throws IdentifierException, NumberFormatException {
             return new ExchangeOrderCancelAttachment(txJSON);
         }
 
@@ -329,7 +329,7 @@ public abstract class Attachment {
         }
 
         private ExchangeOrderCancelAttachment(Response response)
-                throws IdentifierException, IllegalArgumentException, NumberFormatException {
+                throws IdentifierException, NumberFormatException {
             orderId = response.getId("order");
         }
 
@@ -351,6 +351,90 @@ public abstract class Attachment {
          */
         public long getOrderId() {
             return orderId;
+        }
+    }
+
+    /**
+     * CurrencyMinting attachment
+     */
+    public static class CurrencyMintingAttachment extends Attachment {
+
+        private long nonce;
+        private long currencyId;
+        private long units;
+        private long counter;
+
+        @Override
+        protected Attachment parseAttachment(Response txJSON)
+                throws IdentifierException, NumberFormatException {
+            return new CurrencyMintingAttachment(txJSON);
+        }
+
+        @Override
+        protected Attachment parseAttachment(byte[] txBytes)
+                throws BufferUnderflowException, IllegalArgumentException {
+            return new CurrencyMintingAttachment(txBytes);
+        }
+
+        private CurrencyMintingAttachment() {
+        }
+
+        private CurrencyMintingAttachment(Response response)
+                throws IdentifierException, NumberFormatException {
+            nonce = response.getLong("nonce");
+            currencyId = response.getId("currency");
+            units = response.getLong("units");
+            counter = response.getLong("counter");
+        }
+
+        private CurrencyMintingAttachment(byte[] transactionBytes)
+                throws BufferUnderflowException, IllegalArgumentException {
+            ByteBuffer buffer = ByteBuffer.wrap(transactionBytes);
+            buffer.order(ByteOrder.LITTLE_ENDIAN);
+            buffer.position(Transaction.BASE_LENGTH);
+            int version = buffer.get();
+            if (version != 1)
+                throw new IllegalArgumentException("Attachment version is not 1");
+            this.nonce = buffer.getLong();
+            this.currencyId = buffer.getLong();
+            this.units = buffer.getLong();
+            this.counter = buffer.getLong();
+        }
+
+        /**
+         * Return the currency identifier
+         *
+         * @return                      Currency identifier
+         */
+        public long getCurrencyId() {
+            return currencyId;
+        }
+
+        /**
+         * Return the nonce
+         *
+         * @return                      Nonce
+         */
+        public long getNonce() {
+            return nonce;
+        }
+
+        /**
+         * Return the minting units
+         *
+         * @return                      Minting units
+         */
+        public long getUnits() {
+            return units;
+        }
+
+        /**
+         * Return the minting counter
+         *
+         * @return                      Minting counter
+         */
+        public long getCounter() {
+            return counter;
         }
     }
 }

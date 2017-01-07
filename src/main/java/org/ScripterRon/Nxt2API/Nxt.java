@@ -198,11 +198,35 @@ public class Nxt {
      * @throws      NxtException            Nxt server returned an error
      */
     public static Response broadcastTransaction(byte[] transactionBytes, String secretPhrase)
-                                            throws IOException, KeyException {
+                    throws IOException, KeyException {
         byte[] signature = Crypto.sign(transactionBytes, secretPhrase);
         System.arraycopy(signature, 0, transactionBytes, Transaction.SIGNATURE_OFFSET, 64);
         return issueRequest("broadcastTransaction",
                 "transactionBytes=" + Utils.toHexString(transactionBytes),
+                DEFAULT_READ_TIMEOUT);
+    }
+
+    /**
+     * Create a currency mint transaction and return the unsigned transaction
+     *
+     * @param       currencyId              Currency identifier
+     * @param       chain                   Chain
+     * @param       nonce                   Minting nonce
+     * @param       units                   Units minted
+     * @param       counter                 Minting counter
+     * @param       fee                     Transaction fee
+     * @param       publicKey               Sender public key
+     * @return                              Transaction
+     * @throws      IOException             Unable to issue Nxt API request
+     */
+    public static Response currencyMint(long currencyId, Chain chain, long nonce, long units,
+                    long counter, long fee, byte[] publicKey) throws IOException {
+        return issueRequest("currencyMint",
+                String.format("currency=%s&chain=%s&nonce=%d&units=%d&counter=%d&"
+                                + "feeNQT=%s&publicKey=%s&deadline=30&broadcast=false",
+                        Utils.idToString(currencyId), chain.getName(),
+                        nonce, units, counter, Long.toUnsignedString(fee),
+                        Utils.toHexString(publicKey)),
                 DEFAULT_READ_TIMEOUT);
     }
 
@@ -387,6 +411,36 @@ public class Nxt {
      */
     public static Response getConstants() throws IOException {
         return issueRequest("getConstants", null, DEFAULT_READ_TIMEOUT);
+    }
+
+    /**
+     * Get a currency
+     *
+     * @param       code                    Currency code
+     * @param       chain                   Chain
+     * @return                              Currency response
+     * @throws      IOException             Unable to issue Nxt API request
+     */
+    public static Response getCurrency(String code, Chain chain) throws IOException {
+        return issueRequest("getCurrency",
+                String.format("code=%s&chain=%s", code, chain.getName()),
+                DEFAULT_READ_TIMEOUT);
+    }
+
+    /**
+     * Get the minting target
+     *
+     * @param       currencyId              Currency identifier
+     * @param       accountId               Account identifier
+     * @param       units                   Units to be minted
+     * @return                              Target response
+     * @throws      IOException             Unable to issue Nxt API request
+     */
+    public static Response getMintingTarget(long currencyId, long accountId, long units) throws IOException {
+        return issueRequest("getMintingTarget",
+                String.format("currency=%s&account=%s&units=%d",
+                        Utils.idToString(currencyId), Utils.idToString(accountId), units),
+                DEFAULT_READ_TIMEOUT);
     }
 
     /**
