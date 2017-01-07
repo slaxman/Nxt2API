@@ -87,6 +87,9 @@ public class Transaction {
     /** Transaction type */
     private final TransactionType transactionType;
 
+    /** Transaction attachment */
+    private final Attachment attachment;
+
     /** Block identifier */
     private long blockId;
 
@@ -151,6 +154,7 @@ public class Transaction {
         int type = response.getInt("type");
         int subtype = response.getInt("subtype");
         transactionType = Nxt.getTransactionType(type, subtype);
+        attachment = Attachment.getAttachment(transactionType, response.getObject("attachment"));
     }
 
     /**
@@ -189,6 +193,7 @@ public class Transaction {
         ecBlockHeight = buffer.getInt();
         ecBlockId = buffer.getLong();
         transactionType = Nxt.getTransactionType(type, subtype);
+        attachment = Attachment.getAttachment(transactionType, transactionBytes);
         height = 0;
         blockId = 0;
         //
@@ -324,6 +329,15 @@ public class Transaction {
      */
     public long getEcBlockIdentifier() {
         return ecBlockId;
+    }
+
+    /**
+     * Get the transaction attachment
+     *
+     * @return                      Attachment or null if the attachment type is not supported
+     */
+    public Attachment getAttachment() {
+        return attachment;
     }
 
     /**
