@@ -15,6 +15,8 @@
  */
 package org.ScripterRon.Nxt2API;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import org.ScripterRon.JSON.JSONAware;
 
 import java.io.EOFException;
@@ -27,6 +29,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Utility routines
@@ -280,6 +284,48 @@ public class Utils {
             bytes[i] = (byte)((char1 << 4) + char2);
         }
         return bytes;
+    }
+
+    /**
+     * Compress a byte array using GZip
+     *
+     * @param   bytes               Data to compress
+     * @return                      Compressed data
+     * @throws  IOException         Unable to compress data
+     */
+    public static byte[] compressBytes(byte[] bytes) throws IOException {
+        byte[] compressedBytes;
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                GZIPOutputStream gzip = new GZIPOutputStream(bos)) {
+            gzip.write(bytes);
+            gzip.flush();
+            gzip.close();
+            compressedBytes = bos.toByteArray();
+        }
+        return compressedBytes;
+    }
+
+    /**
+     * Uncompress a byte array compressed using GZip
+     *
+     * @param   bytes               Data to uncompress
+     * @return                      Uncompressed data
+     * @throws  IOException         Unable to uncompress data
+     */
+    public static byte[] uncompress(byte[] bytes) throws IOException {
+        byte[] uncompressedBytes;
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+                GZIPInputStream gzip = new GZIPInputStream(bis);
+                ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[1024];
+            int nRead;
+            while ((nRead = gzip.read(buffer, 0, buffer.length)) > 0) {
+                bos.write(buffer, 0, nRead);
+            }
+            bos.flush();
+            uncompressedBytes = bos.toByteArray();
+        }
+        return uncompressedBytes;
     }
 
     /**

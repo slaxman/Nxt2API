@@ -15,10 +15,19 @@
  */
 package org.ScripterRon.Nxt2API;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Arrays;
+
+import org.bouncycastle.crypto.CipherParameters;
+import org.bouncycastle.crypto.InvalidCipherTextException;
+import org.bouncycastle.crypto.engines.AESEngine;
+import org.bouncycastle.crypto.modes.CBCBlockCipher;
+import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
+import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.crypto.params.ParametersWithIV;
 
 /**
  * Cryptographic functions using Curve25519
@@ -38,6 +47,25 @@ public class Crypto {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);      // Never happen
         }
+    }
+
+    /** Create a secure random generator for each thread */
+    private static final ThreadLocal<SecureRandom> secureRandom = new ThreadLocal<SecureRandom>() {
+        @Override
+        protected SecureRandom initialValue() {
+            SecureRandom secureRandom = new SecureRandom();
+            secureRandom.nextBoolean();
+            return secureRandom;
+        }
+    };
+
+    /**
+     * Return a secure random generator for the current thread
+     *
+     * @return                      Random number generator
+     */
+    public static SecureRandom getSecureRandom() {
+        return secureRandom.get();
     }
 
     /**
@@ -83,6 +111,18 @@ public class Crypto {
     }
 
     /**
+     * Return the private key for the supplied secret phrase
+     *
+     * @param   secretPhrase            Account secret phrase
+     * @return                          Private key
+     */
+    public static byte[] getPrivateKey(String secretPhrase) {
+        byte[] k = singleDigest(secretPhrase.getBytes(UTF8));
+        Curve25519.clamp(k);
+        return k;
+    }
+
+    /**
      * Return the public key for the supplied secret phrase
      *
      * @param       secretPhrase        Account secret phrase
@@ -95,6 +135,38 @@ public class Crypto {
         if (!Curve25519.isCanonicalPublicKey(publicKey))
             throw new KeyException("Public key is not canonical");
         return publicKey;
+    }
+
+    /**
+     * Get a shared key for use by accounts A and B.  User A uses the shared
+     * key by providing the private key for A and the public key for B.
+     * User b uses the shared key by providing the private key for B and
+     * the public key for A.
+     *
+     * @param   privateKey              Private key of first account
+     * @param   publicKey               Public key of second account
+     * @param   nonce                   32-byte nonce
+     * @return                          Shared key
+     */
+    public static byte[] getSharedKey(byte[] privateKey, byte[] publicKey, byte[] nonce) {
+        byte[] sharedSecret = getSharedSecret(privateKey, publicKey);
+        for (int i=0; i<32; i++) {
+            sharedSecret[i] ^= nonce[i];
+        }
+        return singleDigest(sharedSecret);
+    }
+
+    /**
+     * Get the shared secret for two accounts.
+     *
+     * @param   privateKey              Private key of account A
+     * @param   publicKey               Public key of account B
+     * @return                          Shared secret
+     */
+    private static byte[] getSharedSecret(byte[] privateKey, byte[] publicKey) {
+        byte[] sharedSecret = new byte[32];
+        Curve25519.curve(sharedSecret, privateKey, publicKey);
+        return sharedSecret;
     }
 
     /**
@@ -135,5 +207,63 @@ public class Crypto {
             }
         }
         return signature;
+    }
+
+    /**
+     * Encrypt data using the AES block cipher
+     *
+     * @param   plainText                   Text to encrypt
+     * @param   key                         Encryption key
+     * @return                              Encrypted text
+     * @throws  IllegalArgumentException    AES encryption failed
+     */
+    public static byte[] aesEncrypt(byte[] plainText, byte[] key) throws IllegalArgumentException {
+        byte[] result;
+        try {
+            byte[] iv = new byte[16];
+            secureRandom.get().nextBytes(iv);
+            PaddedBufferedBlockCipher aes = new PaddedBufferedBlockCipher(new CBCBlockCipher(new AESEngine()));
+            CipherParameters ivAndKey = new ParametersWithIV(new KeyParameter(key), iv);
+            aes.init(true, ivAndKey);
+            byte[] output = new byte[aes.getOutputSize(plainText.length)];
+            int ciphertextLength = aes.processBytes(plainText, 0, plainText.length, output, 0);
+            ciphertextLength += aes.doFinal(output, ciphertextLength);
+            result = new byte[iv.length + ciphertextLength];
+            System.arraycopy(iv, 0, result, 0, iv.length);
+            System.arraycopy(output, 0, result, iv.length, ciphertextLength);
+        } catch (InvalidCipherTextException exc) {
+            throw new IllegalArgumentException("Unable to encrypt text", exc);
+        }
+        return result;
+    }
+
+    /**
+     * Decrypt data using the AES block cipher
+     *
+     * @param   encryptedData               Encrypted data
+     * @param   key                         Encryption key
+     * @return                              Decrypted text
+     * @throws  IllegalArgumentException    AES decryption failed
+     */
+    public static byte[] aesDecrypt(byte[] encryptedData, byte[] key) throws IllegalArgumentException {
+        byte[] result;
+        try {
+            if (encryptedData.length < 16 || encryptedData.length % 16 != 0) {
+                throw new IllegalArgumentException("Encrypted data is not valid");
+            }
+            byte[] iv = Arrays.copyOfRange(encryptedData, 0, 16);
+            byte[] ciphertext = Arrays.copyOfRange(encryptedData, 16, encryptedData.length);
+            PaddedBufferedBlockCipher aes = new PaddedBufferedBlockCipher(new CBCBlockCipher(new AESEngine()));
+            CipherParameters ivAndKey = new ParametersWithIV(new KeyParameter(key), iv);
+            aes.init(false, ivAndKey);
+            byte[] output = new byte[aes.getOutputSize(ciphertext.length)];
+            int plaintextLength = aes.processBytes(ciphertext, 0, ciphertext.length, output, 0);
+            plaintextLength += aes.doFinal(output, plaintextLength);
+            result = new byte[plaintextLength];
+            System.arraycopy(output, 0, result, 0, result.length);
+        } catch (InvalidCipherTextException exc) {
+            throw new IllegalArgumentException("Unable to decrypt text", exc);
+        }
+        return result;
     }
 }

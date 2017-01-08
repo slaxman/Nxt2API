@@ -10,8 +10,9 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <json.version>1.0.0</json.version>
+        <bcprov.version>1.55</bcprov.version>
     </properties>
-    <name>Nxt2 API Support Library</name>
+    <name>Java Nxt2 API Library</name>
     <url>https://github.com/ScripterRon/Nxt2API</url>
     <description>Nxt2API provides support for applications using the Nxt2 API
     </description>
@@ -95,6 +96,11 @@
             <groupId>org.ScripterRon</groupId>
             <artifactId>JSON</artifactId>
             <version>${json.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <version>${bcprov.version}</version>
         </dependency>
     </dependencies>
 </project>

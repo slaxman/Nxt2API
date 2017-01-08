@@ -17,12 +17,14 @@ package org.ScripterRon.Nxt2API;
 
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Transaction attachment
+ * <p>
+ * Each transaction has a single attachment based on the transaction type.
+ * The attachment contains the unique information for that transaction type.
  */
 public abstract class Attachment {
 
@@ -102,76 +104,95 @@ public abstract class Attachment {
             return typeMap.get((txType.getType() << 8) | txType.getSubtype());
         }
 
-        private Attachment getAttachment() {
+        Attachment getAttachment() {
             return attachment;
         }
     }
 
+    /** Attachment version */
+    int version;
+
+    /** Transaction type */
+    TransactionType transactionType;
+
     /**
-     * Create an attachment for the supplied transaction
-     *
-     * @param   txType                      Transaction type
-     * @param   txJSON                      Transaction JSON
-     * @return                              Attachment or null if transaction not supported
-     * @throws  IdentifierException         Invalid Nxt object identifier
-     * @throws  IllegalArgumentException    Response is not valid
-     * @throws  NumberFormatException       Invalid numeric value
+     * Create a dummy attachment
      */
-    static Attachment getAttachment(TransactionType txType, Response txJSON)
-                throws IdentifierException, IllegalArgumentException, NumberFormatException {
-        AttachmentType type = AttachmentType.get(txType);
-        if (type == null) {
-            return null;
-        }
-        Attachment attachment = type.getAttachment();
-        if (attachment == null) {
-            return null;
-        }
-        return attachment.parseAttachment(txJSON);
+    private Attachment() {
     }
 
     /**
-     * Create an attachment for the supplied transaction
+     * Create an empty attachment
      *
-     * @param   txType                      Transaction type
-     * @param   txBytes                     Transaction bytes
-     * @return                              Attachment or null if transaction not supported
-     * @throws  BufferUnderflowException    End-of-data reached parsing attachment
-     * @throws  IllegalArgumentException    Invalid attachment
+     * @param   transactionType             Transaction type
      */
-    static Attachment getAttachment(TransactionType txType, ByteBuffer txBytes)
-                throws BufferUnderflowException, IllegalArgumentException {
-        AttachmentType type = AttachmentType.get(txType);
-        if (type == null) {
-            return null;
-        }
-        Attachment attachment = type.getAttachment();
-        if (attachment == null) {
-            return null;
-        }
-        return attachment.parseAttachment(txBytes);
+    private Attachment(TransactionType txType) {
+        transactionType = txType;
+        version = 0;
+    }
+
+    /**
+     * Create an attachment
+     *
+     * @param   transactionType             Transaction type
+     * @param   json                        Attachment JSON
+     */
+    private Attachment(TransactionType txType, Response json) {
+        transactionType = txType;
+        version = json.getInt("version." + txType.getName());
+    }
+
+    /**
+     * Create an attachment
+     *
+     * @param   transactionType             Transaction type
+     * @param   buffer                      Attachment bytes
+     */
+    private Attachment(TransactionType txType, ByteBuffer buffer) {
+        version = buffer.get();
+    }
+
+    /**
+     * Get the attachment version
+     *
+     * @return                              Attachment version
+     */
+    public int getVersion() {
+        return version;
+    }
+
+    /**
+     * Get the transaction type
+     *
+     * @return                              Transaction type
+     */
+    public TransactionType getTransactionType() {
+        return transactionType;
     }
 
     /**
      * Parse the attachment JSON
      *
-     * @param   txJSON                      Transaction JSON
+     * @param   txType                      Transaction type
+     * @param   json                        Attachment JSON
      * @return                              Attachment or null if transaction not supported
      * @throws  IdentifierException         Invalid Nxt object identifier
      * @throws  IllegalArgumentException    Response is not valid
      * @throws  NumberFormatException       Invalid numeric value
      */
-    abstract protected Attachment parseAttachment(Response txJSON)
+    abstract protected Attachment parseAttachment(TransactionType txType, Response json)
                 throws IdentifierException, IllegalArgumentException, NumberFormatException;
+
     /**
      * Parse the attachment bytes
      *
-     * @param   txBytes                     Transaction bytes
+     * @param   txType                      Transaction type
+     * @param   buffer                      Attachment bytes
      * @return                              Attachment or null if transaction not supported
      * @throws  BufferUnderflowException    End-of-data reached parsing attachment
      * @throws  IllegalArgumentException    Invalid attachment
      */
-    abstract protected Attachment parseAttachment(ByteBuffer txBytes)
+    abstract protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException;
 
     /**
@@ -182,13 +203,20 @@ public abstract class Attachment {
      */
     public static class PaymentAttachment extends Attachment {
         @Override
-        protected Attachment parseAttachment(Response txJSON) {
-            return new PaymentAttachment();
+        protected Attachment parseAttachment(TransactionType txType, Response json) {
+            return new PaymentAttachment(txType);
         }
 
         @Override
-        protected Attachment parseAttachment(ByteBuffer txBytes) {
-            return new PaymentAttachment();
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer) {
+            return new PaymentAttachment(txType);
+        }
+
+        private PaymentAttachment() {
+        }
+
+        private PaymentAttachment(TransactionType txType) {
+            super(txType);
         }
     }
 
@@ -200,13 +228,20 @@ public abstract class Attachment {
      */
     public static class MessagingAttachment extends Attachment {
         @Override
-        protected Attachment parseAttachment(Response txJSON) {
-            return new MessagingAttachment();
+        protected Attachment parseAttachment(TransactionType txType, Response json) {
+            return new MessagingAttachment(txType);
         }
 
         @Override
-        protected Attachment parseAttachment(ByteBuffer txBytes) {
-            return new MessagingAttachment();
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer) {
+            return new MessagingAttachment(txType);
+        }
+
+        private MessagingAttachment() {
+        }
+
+        private MessagingAttachment(TransactionType txType) {
+            super(txType);
         }
     }
 
@@ -221,22 +256,23 @@ public abstract class Attachment {
         private long price;
 
         @Override
-        protected Attachment parseAttachment(Response txJSON)
+        protected Attachment parseAttachment(TransactionType txType, Response json)
                 throws IllegalArgumentException, NumberFormatException {
-            return new ExchangeOrderIssueAttachment(txJSON);
+            return new ExchangeOrderIssueAttachment(txType, json);
         }
 
         @Override
-        protected Attachment parseAttachment(ByteBuffer txBytes)
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException {
-            return new ExchangeOrderIssueAttachment(txBytes);
+            return new ExchangeOrderIssueAttachment(txType, buffer);
         }
 
         private ExchangeOrderIssueAttachment() {
         }
 
-        private ExchangeOrderIssueAttachment(Response response)
+        private ExchangeOrderIssueAttachment(TransactionType txType, Response response)
                 throws IllegalArgumentException, NumberFormatException {
+            super(txType, response);
             int chainId = response.getInt("chain");
             chain = Nxt.getChain(chainId);
             if (chain == null)
@@ -249,11 +285,9 @@ public abstract class Attachment {
             price = response.getLong("priceNQT");
         }
 
-        private ExchangeOrderIssueAttachment(ByteBuffer buffer)
+        private ExchangeOrderIssueAttachment(TransactionType txType, ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException {
-            int version = buffer.get();
-            if (version != 1)
-                throw new IllegalArgumentException("Attachment version " + version + " is not supported");
+            super(txType, buffer);
             int chainId = buffer.getInt();
             chain = Nxt.getChain(chainId);
             if (chain == null)
@@ -311,30 +345,29 @@ public abstract class Attachment {
         private long orderId;
 
         @Override
-        protected Attachment parseAttachment(Response txJSON)
+        protected Attachment parseAttachment(TransactionType txType, Response json)
                 throws IdentifierException, NumberFormatException {
-            return new ExchangeOrderCancelAttachment(txJSON);
+            return new ExchangeOrderCancelAttachment(txType, json);
         }
 
         @Override
-        protected Attachment parseAttachment(ByteBuffer txBytes)
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException {
-            return new ExchangeOrderCancelAttachment(txBytes);
+            return new ExchangeOrderCancelAttachment(txType, buffer);
         }
 
         private ExchangeOrderCancelAttachment() {
         }
 
-        private ExchangeOrderCancelAttachment(Response response)
+        private ExchangeOrderCancelAttachment(TransactionType txType, Response response)
                 throws IdentifierException, NumberFormatException {
+            super(txType, response);
             orderId = response.getId("order");
         }
 
-        private ExchangeOrderCancelAttachment(ByteBuffer buffer)
+        private ExchangeOrderCancelAttachment(TransactionType txType, ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException {
-            int version = buffer.get();
-            if (version != 1)
-                throw new IllegalArgumentException("Attachment version " + version + " is not supported");
+            super(txType, buffer);
             orderId = buffer.getLong();
         }
 
@@ -359,33 +392,32 @@ public abstract class Attachment {
         private long counter;
 
         @Override
-        protected Attachment parseAttachment(Response txJSON)
+        protected Attachment parseAttachment(TransactionType txType, Response json)
                 throws IdentifierException, NumberFormatException {
-            return new CurrencyMintingAttachment(txJSON);
+            return new CurrencyMintingAttachment(txType, json);
         }
 
         @Override
-        protected Attachment parseAttachment(ByteBuffer txBytes)
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException {
-            return new CurrencyMintingAttachment(txBytes);
+            return new CurrencyMintingAttachment(txType, buffer);
         }
 
         private CurrencyMintingAttachment() {
         }
 
-        private CurrencyMintingAttachment(Response response)
+        private CurrencyMintingAttachment(TransactionType txType, Response response)
                 throws IdentifierException, NumberFormatException {
+            super(txType, response);
             nonce = response.getLong("nonce");
             currencyId = response.getId("currency");
             units = response.getLong("units");
             counter = response.getLong("counter");
         }
 
-        private CurrencyMintingAttachment(ByteBuffer buffer)
+        private CurrencyMintingAttachment(TransactionType txType, ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException {
-            int version = buffer.get();
-            if (version != 1)
-                throw new IllegalArgumentException("Attachment version is not 1");
+            super(txType, buffer);
             this.nonce = buffer.getLong();
             this.currencyId = buffer.getLong();
             this.units = buffer.getLong();

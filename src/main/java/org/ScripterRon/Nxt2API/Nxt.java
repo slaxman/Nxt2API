@@ -709,6 +709,10 @@ public class Nxt {
 
     /**
      * Issue the Nxt API request and return the parsed JSON response
+     * <p>
+     * Applications can issue API requests directly instead of using one of the
+     * helper routines.  The application is responsible for correctly formatting
+     * the request parameters.
      *
      * @param       requestType             Request type
      * @param       requestParams           Request parameters
@@ -718,7 +722,7 @@ public class Nxt {
      * @throws      NxtException            Nxt server returned an error
      */
     @SuppressWarnings("unchecked")
-    private static Response issueRequest(String requestType, String requestParams, int readTimeout)
+    public static Response issueRequest(String requestType, String requestParams, int readTimeout)
                                             throws IOException {
         Response response = null;
         try {

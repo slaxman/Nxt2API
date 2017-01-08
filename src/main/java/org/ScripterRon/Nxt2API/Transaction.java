@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.SortedMap;
 
 /**
  * Nxt2 transaction
@@ -85,7 +86,28 @@ public class Transaction {
     private final TransactionType transactionType;
 
     /** Transaction attachment */
-    private final Attachment attachment;
+    private Attachment attachment;
+
+    /** Plain message appendix */
+    private Appendix.MessageAppendix messageAppendix;
+
+    /** Encrypted message appendix */
+    private Appendix.EncryptedMessageAppendix encryptedMessageAppendix;
+
+    /** Encrypt-to-self appendix */
+    //private Appendix.EncryptToSelfMessageAppendix encryptToSelfMessageAppendix;
+
+    /** Prunable plain message appendix */
+    //private Appendix.PrunablePlainMessageAppendix prunableMessageAppendix;
+
+    /** Prunable encrypted message appendix */
+    //private Appendix.PrunableEncryptedMessageAppendix prunableEncryptedMessageAppendix;
+
+    /** Public key announcement appendix */
+    //private Appendix.PublicKeyAnnouncementAppendix publicKeyAnnouncementAppendix;
+
+    /** Phasing appendix */
+    //private Appendix.PhasingAppendix phasingAppendix;
 
     /** Block identifier */
     private long blockId;
@@ -138,6 +160,43 @@ public class Transaction {
         chain = Nxt.getChain(chainId);
         if (chain == null)
             throw new IdentifierException("Nxt chain '" + chainId +"' is not defined");
+        ecBlockId = response.getId("ecBlockId");
+        ecBlockHeight = response.getInt("ecBlockHeight");
+        int type = response.getInt("type");
+        int subtype = response.getInt("subtype");
+        transactionType = Nxt.getTransactionType(type, subtype);
+        //
+        // Get the transaction attachment
+        //
+        Response attachmentJSON = response.getObject("attachment");
+        Attachment.AttachmentType attachmentType = Attachment.AttachmentType.get(transactionType);
+        if (attachmentType != null) {
+            Attachment parser = attachmentType.getAttachment();
+            if (parser != null) {
+                attachment = parser.parseAttachment(transactionType, attachmentJSON);
+            }
+        }
+        //
+        // Get the appendices
+        //
+        SortedMap<Integer, Appendix.AppendixType> appendixMap = Appendix.AppendixType.getAppendixMap();
+        for (Appendix.AppendixType appendixType : appendixMap.values()) {
+            Appendix parser = appendixType.getAppendix();
+            if (parser != null && attachmentJSON.getInt("version." + parser.getName()) > 0) {
+                Appendix appendix = parser.parseAppendix(attachmentJSON);
+                switch (appendix.getName()) {
+                    case "Message":
+                        messageAppendix = (Appendix.MessageAppendix)appendix;
+                        break;
+                    case "EncryptedMessage":
+                        encryptedMessageAppendix = (Appendix.EncryptedMessageAppendix)appendix;
+                        break;
+                }
+            }
+        }
+        //
+        // Get the transaction height and block identifier
+        //
         int txHeight = response.getInt("height");
         if (txHeight == 0 || txHeight == Integer.MAX_VALUE) {
             height = 0;
@@ -146,12 +205,6 @@ public class Transaction {
             height = txHeight;
             blockId = response.getLong("block");
         }
-        ecBlockId = response.getId("ecBlockId");
-        ecBlockHeight = response.getInt("ecBlockHeight");
-        int type = response.getInt("type");
-        int subtype = response.getInt("subtype");
-        transactionType = Nxt.getTransactionType(type, subtype);
-        attachment = Attachment.getAttachment(transactionType, response.getObject("attachment"));
     }
 
     /**
@@ -191,7 +244,40 @@ public class Transaction {
         ecBlockId = buffer.getLong();
         int flags = buffer.getInt();
         transactionType = Nxt.getTransactionType(type, subtype);
-        attachment = Attachment.getAttachment(transactionType, buffer);
+        //
+        // Get the transaction attachment
+        //
+        Attachment.AttachmentType attachmentType = Attachment.AttachmentType.get(transactionType);
+        if (attachmentType != null) {
+            Attachment parser = attachmentType.getAttachment();
+            if (parser != null) {
+                attachment = parser.parseAttachment(transactionType, buffer);
+            }
+        }
+        //
+        // Get the appendices
+        //
+        // The appendices follow the transaction attachment and ordered by the flag bits
+        // (1, 2, 4, 8, etc).  The appendix map is sorted by the flag bit, so we just
+        // process the map values in order.
+        //
+        SortedMap<Integer, Appendix.AppendixType> appendixMap = Appendix.AppendixType.getAppendixMap();
+        for (Appendix.AppendixType appendixType : appendixMap.values()) {
+            if ((flags & appendixType.getCode()) != 0) {
+                Appendix parser = appendixType.getAppendix();
+                if (parser != null) {
+                    Appendix appendix = parser.parseAppendix(buffer);
+                    switch (appendix.getName()) {
+                        case "Message":
+                            messageAppendix = (Appendix.MessageAppendix)appendix;
+                            break;
+                        case "EncryptedMessage":
+                            encryptedMessageAppendix = (Appendix.EncryptedMessageAppendix)appendix;
+                            break;
+                    }
+                }
+            }
+        }
         //
         // Height and block identifier are not part of the transaction bytes
         //
@@ -339,6 +425,24 @@ public class Transaction {
      */
     public Attachment getAttachment() {
         return attachment;
+    }
+
+    /**
+     * Get the message appendix
+     *
+     * @return                      Message appendix or null if there is no appendix
+     */
+    public Appendix.MessageAppendix getMessageAppendix() {
+        return messageAppendix;
+    }
+
+    /**
+     * Get the encrypted message appendix
+     *
+     * @return                      Encrypted message appendix or null if there is no appendix
+     */
+    public Appendix.EncryptedMessageAppendix getEncryptedMessageAppendix() {
+        return encryptedMessageAppendix;
     }
 
     /**
