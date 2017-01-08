@@ -185,6 +185,40 @@ public class Nxt {
     }
 
     /**
+     * Add a peer to the server peer list and connect to the peer
+     *
+     * @param       announcedAddress        The announced address of the peer
+     * @param       adminPassword           Administrator password
+     * @return                              Server response
+     * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
+     */
+    public static Response addPeer(String announcedAddress, String adminPassword) throws IOException {
+        return issueRequest("addPeer",
+                    String.format("peer=%s&adminPassword=%s",
+                            URLEncoder.encode(announcedAddress, "UTF-8"),
+                            URLEncoder.encode(adminPassword, "UTF-8")),
+                    DEFAULT_READ_TIMEOUT);
+    }
+
+    /**
+     * Blacklist a peer
+     *
+     * @param       address                 Peer address
+     * @param       adminPassword           Administrator password
+     * @return                              Server response
+     * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
+     */
+    public static Response blacklistPeer(String address, String adminPassword) throws IOException {
+        return issueRequest("blacklistPeer",
+                    String.format("peer=%s&adminPassword=%s",
+                            URLEncoder.encode(address, "UTF-8"),
+                            URLEncoder.encode(adminPassword, "UTF-8")),
+                    DEFAULT_READ_TIMEOUT);
+    }
+
+    /**
      * Sign and broadcast a transaction
      * <p>
      * The transaction is signed locally and the secret phrase is not sent
@@ -218,6 +252,7 @@ public class Nxt {
      * @param       publicKey               Sender public key
      * @return                              Transaction
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response currencyMint(long currencyId, Chain chain, long nonce, long units,
                     long counter, long fee, byte[] publicKey) throws IOException {
@@ -347,6 +382,44 @@ public class Nxt {
     }
 
     /**
+     * Get a block
+     *
+     * @param       blockId                 Block identifier
+     * @param       includeTransactions     TRUE to include the block transactions or
+     *                                      FALSE to include just the transaction identifiers
+     * @return                              Block response
+     * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
+     */
+    public static Response getBlock(String blockId, boolean includeTransactions) throws IOException {
+        return issueRequest("getBlock",
+                String.format("block=%s&includeTransactions=%s", blockId, includeTransactions),
+                DEFAULT_READ_TIMEOUT);
+    }
+
+    /**
+     * Get a list of blocks
+     *
+     * @param       firstIndex              Start index (chain head is index 0)
+     * @param       lastIndex               Stop index
+     * @param       includeTransactions     TRUE to include the block transactions or
+     *                                      FALSE to include just the transaction identifiers
+     * @return                              Block list
+     * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
+     */
+    public static List<Response> getBlocks(int firstIndex, int lastIndex, boolean includeTransactions)
+                                            throws IOException {
+        if (firstIndex < 0 || lastIndex < firstIndex)
+            throw new IllegalArgumentException("Illegal index values");
+        Response response = issueRequest("getBlocks",
+                String.format("firstIndex=%d&lastIndex=%d&includeTransactions=%s",
+                        firstIndex, lastIndex, includeTransactions),
+                DEFAULT_READ_TIMEOUT);
+        return response.getObjectList("blocks");
+    }
+
+    /**
      * Get the blockchain status
      *
      * @return                              Blockchain status
@@ -358,23 +431,24 @@ public class Nxt {
     }
 
     /**
-     * Get the blockchain transactions
+     * Get the blockchain transactions for an account
      *
      * @param       accountId               Account identifier
      * @param       chain                   Chain
      * @param       firstIndex              Index of first transaction to return
      * @param       lastIndex               Index of last transaction to return
-     * @return                              Account transactions
+     * @return                              Account transaction list
      * @throws      IOException             Unable to issue Nxt API request
      * @throws      NxtException            Nxt server returned an error
      */
-    public static Response getBlockchainTransactions(long accountId, Chain chain,
+    public static List<Response> getBlockchainTransactions(long accountId, Chain chain,
                                             int firstIndex, int lastIndex) throws IOException {
-        return issueRequest("getBlockchainTransactions",
+        Response response = issueRequest("getBlockchainTransactions",
                 String.format("account=%s&chain=%s&firstIndex=%d&lastIndex=%d",
                         Utils.idToString(accountId), chain.getName(),
                 firstIndex, lastIndex),
                 DEFAULT_READ_TIMEOUT);
+        return response.getObjectList("transactions");
     }
 
     /**
@@ -389,17 +463,33 @@ public class Nxt {
     }
 
     /**
-     * Get coin exchange orders
+     * Get the server bundler status
      *
-     * @param       chain                   Exchange orders for this chain
-     * @return                              Exchange orders
+     * @param       adminPassword           Administrator password
+     * @return                              List of bundlers
      * @throws      IOException             Unable to issue Nxt API request
      * @throws      NxtException            Nxt server returned an error
      */
-    public static Response getCoinExchangeOrders(Chain chain) throws IOException {
-        return issueRequest("getCoinExchangeOrders",
+    public static List<Response> getBundlers(String adminPassword) throws IOException {
+        Response response = issueRequest("getBundlers",
+                String.format("adminPassword=%s", URLEncoder.encode(adminPassword, "UTF-8")),
+                            DEFAULT_READ_TIMEOUT);
+        return response.getObjectList("bundlers");
+    }
+
+    /**
+     * Get coin exchange orders
+     *
+     * @param       chain                   Exchange orders for this chain
+     * @return                              Exchange order list
+     * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
+     */
+    public static List<Response> getCoinExchangeOrders(Chain chain) throws IOException {
+        Response response = issueRequest("getCoinExchangeOrders",
                 String.format("exchange=%s", chain.getName()),
                 DEFAULT_READ_TIMEOUT);
+        return response.getObjectList("orders");
     }
 
     /**
@@ -420,11 +510,44 @@ public class Nxt {
      * @param       chain                   Chain
      * @return                              Currency response
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response getCurrency(String code, Chain chain) throws IOException {
         return issueRequest("getCurrency",
                 String.format("code=%s&chain=%s", code, chain.getName()),
                 DEFAULT_READ_TIMEOUT);
+    }
+
+    /**
+     * Get the server forging status
+     *
+     * @param       adminPassword           Administrator password
+     * @return                              List of generators
+     * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
+     */
+    public static List<Response> getForging(String adminPassword) throws IOException {
+        Response response = issueRequest("getForging",
+                String.format("adminPassword=%s", URLEncoder.encode(adminPassword, "UTF-8")),
+                DEFAULT_READ_TIMEOUT);
+        return response.getObjectList("generators");
+    }
+
+    /**
+     * Get the server log
+     *
+     * @param       count                   Number of records to get
+     * @param       adminPassword           Administrator password
+     * @return                              Log messages
+     * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
+     */
+    public static List<String> getLog(int count, String adminPassword) throws IOException {
+        Response response = issueRequest("getLog",
+                String.format("count=%d&adminPassword=%s",
+                        count, URLEncoder.encode(adminPassword, "UTF-8")),
+                DEFAULT_READ_TIMEOUT);
+        return response.getStringList("messages");
     }
 
     /**
@@ -435,12 +558,42 @@ public class Nxt {
      * @param       units                   Units to be minted
      * @return                              Target response
      * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
      */
     public static Response getMintingTarget(long currencyId, long accountId, long units) throws IOException {
         return issueRequest("getMintingTarget",
                 String.format("currency=%s&account=%s&units=%d",
                         Utils.idToString(currencyId), Utils.idToString(accountId), units),
                 DEFAULT_READ_TIMEOUT);
+    }
+
+    /**
+     * Get a peer
+     *
+     * @param       networkAddress          The network address of the peer
+     * @return                              Peer
+     * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
+     */
+    public static Response getPeer(String networkAddress) throws IOException {
+        return issueRequest("getPeer",
+                "peer=" + URLEncoder.encode(networkAddress, "UTF-8"),
+                DEFAULT_READ_TIMEOUT);
+    }
+
+    /**
+     * Get the current peer information
+     *
+     * @param       state                   Return peers in this state
+     * @return                              Peer list
+     * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
+     */
+    public static List<Response> getPeers(String state) throws IOException {
+        Response response = issueRequest("getPeers",
+                String.format("state=%s&includePeerInfo=true", state),
+                DEFAULT_READ_TIMEOUT);
+        return response.getObjectList("peers");
     }
 
     /**
@@ -463,14 +616,15 @@ public class Nxt {
      *
      * @param       accountId               Account identifier
      * @param       chain                   Transaction chain
-     * @return                              Transaction
+     * @return                              Transaction list
      * @throws      IOException             Unable to issue Nxt API request
      * @throws      NxtException            Nxt server returned an error
      */
-    public static Response getUnconfirmedTransactions(long accountId, Chain chain) throws IOException {
-        return issueRequest("getUnconfirmedTransactions",
+    public static List<Response> getUnconfirmedTransactions(long accountId, Chain chain) throws IOException {
+        Response response = issueRequest("getUnconfirmedTransactions",
                 String.format("account=%s&chain=%s", Utils.idToString(accountId), chain.getName()),
                 DEFAULT_READ_TIMEOUT);
+        return response.getObjectList("unconfirmedTransactions");
     }
 
     /**
@@ -495,6 +649,22 @@ public class Nxt {
                         Utils.idToString(recipientId), chain.getName(),
                                 Long.toUnsignedString(amount), Long.toUnsignedString(fee),
                                 Long.toUnsignedString(exchangeRate), Utils.toHexString(publicKey)),
+                DEFAULT_READ_TIMEOUT);
+    }
+
+    /**
+     * Set server logging
+     *
+     * @param       logLevel                Log level
+     * @param       adminPassword           Administrator password
+     * @return                              Server response
+     * @throws      IOException             Unable to set server logging
+     * @throws      NxtException            Nxt server returned an error
+     */
+    public static Response setLogging(String logLevel, String adminPassword) throws IOException {
+        return issueRequest("setLogging",
+                String.format("logLevel=%s&adminPassword=%s",
+                        logLevel, URLEncoder.encode(adminPassword, "UTF-8")),
                 DEFAULT_READ_TIMEOUT);
     }
 
