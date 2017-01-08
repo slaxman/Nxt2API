@@ -15,11 +15,13 @@
  */
 package org.ScripterRon.Nxt2API;
 
+import org.ScripterRon.JSON.JSONObject;
+
+import java.io.CharConversionException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Response is used for the JSON-encoded responses returned by the Nxt server
@@ -40,13 +42,13 @@ public class Response {
     private static final Response emptyObject = new Response();
 
     /** JSON object map */
-    private final Map<String, Object> objectMap;
+    private final JSONObject<String, Object> objectMap;
 
     /**
      * Create the peer response with an empty map
      */
     public Response() {
-        objectMap = new HashMap<>();
+        objectMap = new JSONObject<>();
     }
 
     /**
@@ -54,7 +56,7 @@ public class Response {
      *
      * @param       map                     JSON object map
      */
-    public Response(Map<String, Object> map) {
+    public Response(JSONObject<String, Object> map) {
         objectMap = map;
     }
 
@@ -63,7 +65,7 @@ public class Response {
      *
      * @return                              Object map
      */
-    public Map<String, Object> getObjectMap() {
+    public JSONObject<String, Object> getObjectMap() {
         return objectMap;
     }
 
@@ -239,7 +241,7 @@ public class Response {
      */
     public Response getObject(String key) {
         Object value = get(key);
-        return ((value instanceof Map) ? new Response((Map<String, Object>)value) : emptyObject);
+        return ((value instanceof JSONObject) ? new Response((JSONObject<String, Object>)value) : emptyObject);
     }
 
     /**
@@ -251,12 +253,23 @@ public class Response {
     public List<Response> getObjectList(String key) {
         Object value = get(key);
         List<Response> responseList;
-        if ((value instanceof List) && !((List)value).isEmpty() && (((List)value).get(0) instanceof Map)) {
+        if ((value instanceof List) && !((List)value).isEmpty() && (((List)value).get(0) instanceof JSONObject)) {
             responseList = new ArrayList<>(((List)value).size());
-            ((List)value).forEach(obj -> responseList.add(new Response((Map<String, Object>)obj)));
+            ((List)value).forEach(obj -> responseList.add(new Response((JSONObject<String, Object>)obj)));
         } else {
             responseList = emptyObjectList;
         }
         return responseList;
+    }
+
+    /**
+     * Return the string representation of this JSON object
+     *
+     * @return                                  JSON string
+     * @throws  CharConversionException         Invalid Unicode character in string value
+     * @throws  UnsupportedEncodingException    Unsupported data type
+     */
+    public String toJSONString() throws CharConversionException, UnsupportedEncodingException {
+        return objectMap.toJSONString();
     }
 }

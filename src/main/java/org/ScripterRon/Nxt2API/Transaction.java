@@ -39,11 +39,8 @@ import java.util.List;
  */
 public class Transaction {
 
-    /** Transaction length */
-    public static final int BASE_LENGTH = 149;
-
     /** Signature offset in the transaction bytes */
-    public static final int SIGNATURE_OFFSET = 69;
+    static final int SIGNATURE_OFFSET = 69;
 
     /** Zero signature */
     private static final byte[] ZERO_SIGNATURE = new byte[64];
@@ -192,8 +189,12 @@ public class Transaction {
         buffer.get(signature);
         ecBlockHeight = buffer.getInt();
         ecBlockId = buffer.getLong();
+        int flags = buffer.getInt();
         transactionType = Nxt.getTransactionType(type, subtype);
-        attachment = Attachment.getAttachment(transactionType, transactionBytes);
+        attachment = Attachment.getAttachment(transactionType, buffer);
+        //
+        // Height and block identifier are not part of the transaction bytes
+        //
         height = 0;
         blockId = 0;
         //

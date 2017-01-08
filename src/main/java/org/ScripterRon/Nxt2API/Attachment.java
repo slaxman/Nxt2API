@@ -102,7 +102,7 @@ public abstract class Attachment {
             return typeMap.get((txType.getType() << 8) | txType.getSubtype());
         }
 
-        public Attachment getAttachment() {
+        private Attachment getAttachment() {
             return attachment;
         }
     }
@@ -139,7 +139,7 @@ public abstract class Attachment {
      * @throws  BufferUnderflowException    End-of-data reached parsing attachment
      * @throws  IllegalArgumentException    Invalid attachment
      */
-    static Attachment getAttachment(TransactionType txType, byte[] txBytes)
+    static Attachment getAttachment(TransactionType txType, ByteBuffer txBytes)
                 throws BufferUnderflowException, IllegalArgumentException {
         AttachmentType type = AttachmentType.get(txType);
         if (type == null) {
@@ -171,7 +171,7 @@ public abstract class Attachment {
      * @throws  BufferUnderflowException    End-of-data reached parsing attachment
      * @throws  IllegalArgumentException    Invalid attachment
      */
-    abstract protected Attachment parseAttachment(byte[] txBytes)
+    abstract protected Attachment parseAttachment(ByteBuffer txBytes)
                 throws BufferUnderflowException, IllegalArgumentException;
 
     /**
@@ -187,7 +187,7 @@ public abstract class Attachment {
         }
 
         @Override
-        protected Attachment parseAttachment(byte[] txBytes) {
+        protected Attachment parseAttachment(ByteBuffer txBytes) {
             return new PaymentAttachment();
         }
     }
@@ -205,7 +205,7 @@ public abstract class Attachment {
         }
 
         @Override
-        protected Attachment parseAttachment(byte[] txBytes) {
+        protected Attachment parseAttachment(ByteBuffer txBytes) {
             return new MessagingAttachment();
         }
     }
@@ -227,7 +227,7 @@ public abstract class Attachment {
         }
 
         @Override
-        protected Attachment parseAttachment(byte[] txBytes)
+        protected Attachment parseAttachment(ByteBuffer txBytes)
                 throws BufferUnderflowException, IllegalArgumentException {
             return new ExchangeOrderIssueAttachment(txBytes);
         }
@@ -249,11 +249,8 @@ public abstract class Attachment {
             price = response.getLong("priceNQT");
         }
 
-        private ExchangeOrderIssueAttachment(byte[] transactionBytes)
+        private ExchangeOrderIssueAttachment(ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException {
-            ByteBuffer buffer = ByteBuffer.wrap(transactionBytes);
-            buffer.order(ByteOrder.LITTLE_ENDIAN);
-            buffer.position(Transaction.BASE_LENGTH);
             int version = buffer.get();
             if (version != 1)
                 throw new IllegalArgumentException("Attachment version " + version + " is not supported");
@@ -320,7 +317,7 @@ public abstract class Attachment {
         }
 
         @Override
-        protected Attachment parseAttachment(byte[] txBytes)
+        protected Attachment parseAttachment(ByteBuffer txBytes)
                 throws BufferUnderflowException, IllegalArgumentException {
             return new ExchangeOrderCancelAttachment(txBytes);
         }
@@ -333,11 +330,8 @@ public abstract class Attachment {
             orderId = response.getId("order");
         }
 
-        private ExchangeOrderCancelAttachment(byte[] transactionBytes)
+        private ExchangeOrderCancelAttachment(ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException {
-            ByteBuffer buffer = ByteBuffer.wrap(transactionBytes);
-            buffer.order(ByteOrder.LITTLE_ENDIAN);
-            buffer.position(Transaction.BASE_LENGTH);
             int version = buffer.get();
             if (version != 1)
                 throw new IllegalArgumentException("Attachment version " + version + " is not supported");
@@ -371,7 +365,7 @@ public abstract class Attachment {
         }
 
         @Override
-        protected Attachment parseAttachment(byte[] txBytes)
+        protected Attachment parseAttachment(ByteBuffer txBytes)
                 throws BufferUnderflowException, IllegalArgumentException {
             return new CurrencyMintingAttachment(txBytes);
         }
@@ -387,11 +381,8 @@ public abstract class Attachment {
             counter = response.getLong("counter");
         }
 
-        private CurrencyMintingAttachment(byte[] transactionBytes)
+        private CurrencyMintingAttachment(ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException {
-            ByteBuffer buffer = ByteBuffer.wrap(transactionBytes);
-            buffer.order(ByteOrder.LITTLE_ENDIAN);
-            buffer.position(Transaction.BASE_LENGTH);
             int version = buffer.get();
             if (version != 1)
                 throw new IllegalArgumentException("Attachment version is not 1");

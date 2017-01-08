@@ -106,8 +106,8 @@ public class Nxt {
         // Get the chains
         //
         chains.clear();
-        ((Map<String, Object>)response.get("chainProperties")).values().forEach(entry -> {
-            Response chainProperties = new Response((Map<String, Object>)entry);
+        response.getObject("chainProperties").getObjectMap().values().forEach(entry -> {
+            Response chainProperties = new Response((JSONObject<String, Object>)entry);
             Chain chain = new Chain(chainProperties.getString("name"),
                                     chainProperties.getInt("id"),
                                     chainProperties.getInt("decimals"));
@@ -233,11 +233,37 @@ public class Nxt {
      */
     public static Response broadcastTransaction(byte[] transactionBytes, String secretPhrase)
                     throws IOException, KeyException {
+        return broadcastTransaction(transactionBytes, null, secretPhrase);
+    }
+
+    /**
+     * Sign and broadcast a transaction
+     * <p>
+     * The transaction is signed locally and the secret phrase is not sent
+     * to the Nxt server.
+     *
+     * @param       transactionBytes        Unsigned transaction bytes
+     * @param       prunableJSON            Prunable attachment JSON or null
+     * @param       secretPhrase            Account secret phrase
+     * @return                              Broadcast response
+     * @throws      IOException             Unable to issue Nxt API request
+     * @throws      KeyException            Unable to sign the transaction
+     * @throws      NxtException            Nxt server returned an error
+     */
+    public static Response broadcastTransaction(byte[] transactionBytes,
+                    String prunableJSON, String secretPhrase) throws IOException, KeyException {
         byte[] signature = Crypto.sign(transactionBytes, secretPhrase);
         System.arraycopy(signature, 0, transactionBytes, Transaction.SIGNATURE_OFFSET, 64);
-        return issueRequest("broadcastTransaction",
-                "transactionBytes=" + Utils.toHexString(transactionBytes),
-                DEFAULT_READ_TIMEOUT);
+        if (prunableJSON != null && prunableJSON.length() > 0) {
+            return issueRequest("broadcastTransaction",
+                    String.format("transactionBytes=%s&prunableAttachmentJSON=%s",
+                            Utils.toHexString(transactionBytes), prunableJSON),
+                    DEFAULT_READ_TIMEOUT);
+        } else {
+            return issueRequest("broadcastTransaction",
+                    "transactionBytes=" + Utils.toHexString(transactionBytes),
+                    DEFAULT_READ_TIMEOUT);
+        }
     }
 
     /**
@@ -636,20 +662,33 @@ public class Nxt {
      * @param       fee                     Transaction fee (0 to use exchange rate)
      * @param       exchangeRate            Exchange rate (ignored if fee is non-zero)
      * @param       publicKey               Sender public key
+     * @param       message                 Text message or null if no message
      * @return                              Transaction
      * @throws      IOException             Unable to issue Nxt API request
      * @throws      NxtException            Nxt server returned an error
      */
     public static Response sendMoney(long recipientId, Chain chain, long amount, long fee,
-                                            long exchangeRate, byte[] publicKey)
+                                            long exchangeRate, byte[] publicKey, String message)
                                             throws IOException {
-        return issueRequest("sendMoney",
+        if (message != null && message.length() > 0) {
+            return issueRequest("sendMoney",
+                String.format("recipient=%s&chain=%s&amountNQT=%s&feeNQT=%s&feeRateNQTPerFXT=%s&"
+                                + "publicKey=%s&message=%s&messageIsText=true&messageIsPrunable=true&"
+                                + "deadline=30&broadcast=false",
+                        Utils.idToString(recipientId), chain.getName(),
+                                Long.toUnsignedString(amount), Long.toUnsignedString(fee),
+                                Long.toUnsignedString(exchangeRate), Utils.toHexString(publicKey),
+                                message),
+                DEFAULT_READ_TIMEOUT);
+        } else {
+            return issueRequest("sendMoney",
                 String.format("recipient=%s&chain=%s&amountNQT=%s&feeNQT=%s&feeRateNQTPerFXT=%s&"
                                 + "publicKey=%s&deadline=30&broadcast=false",
                         Utils.idToString(recipientId), chain.getName(),
                                 Long.toUnsignedString(amount), Long.toUnsignedString(fee),
                                 Long.toUnsignedString(exchangeRate), Utils.toHexString(publicKey)),
                 DEFAULT_READ_TIMEOUT);
+        }
     }
 
     /**
@@ -730,7 +769,7 @@ public class Nxt {
                 Object respObject = JSONParser.parse(reader);
                 if (!(respObject instanceof JSONObject))
                     throw new IOException("Server response is not a JSON object");
-                response = new Response((Map<String, Object>)respObject);
+                response = new Response((JSONObject<String, Object>)respObject);
                 Long errorCode = (Long)response.get("errorCode");
                 if (errorCode != null) {
                     String errorDesc = (String)response.get("errorDescription");
