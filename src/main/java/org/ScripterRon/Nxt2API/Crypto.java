@@ -94,18 +94,18 @@ public class Crypto {
     }
 
     /**
-     * Calculate the SHA-256 hash of two byte arrays
+     * Calculate the SHA-256 hash of one or more byte arrays
      *
-     * @param       input1          First byte array
-     * @param       input2          Second byte array
+     * @param       inputs          Data to be hashed
      * @return                      The hash digest
      */
-    public static byte[] singleDigest(byte[] input1, byte[] input2) {
+    public static byte[] singleDigest(byte[]... inputs) {
         byte[] bytes;
         synchronized (digest) {
             digest.reset();
-            digest.update(input1);
-            bytes = digest.digest(input2);
+            for (byte[] input : inputs)
+                digest.update(input);
+            bytes = digest.digest();
         }
         return bytes;
     }

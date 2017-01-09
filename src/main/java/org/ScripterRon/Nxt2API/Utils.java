@@ -312,7 +312,7 @@ public class Utils {
      * @return                      Uncompressed data
      * @throws  IOException         Unable to uncompress data
      */
-    public static byte[] uncompress(byte[] bytes) throws IOException {
+    public static byte[] uncompressBytes(byte[] bytes) throws IOException {
         byte[] uncompressedBytes;
         try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
                 GZIPInputStream gzip = new GZIPInputStream(bis);

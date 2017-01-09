@@ -94,14 +94,14 @@ public class Transaction {
     /** Encrypted message appendix */
     private Appendix.EncryptedMessageAppendix encryptedMessageAppendix;
 
-    /** Encrypt-to-self appendix */
-    //private Appendix.EncryptToSelfMessageAppendix encryptToSelfMessageAppendix;
+    /** Encrypt-to-self message appendix */
+    private Appendix.EncryptToSelfMessageAppendix encryptToSelfMessageAppendix;
 
     /** Prunable plain message appendix */
-    //private Appendix.PrunablePlainMessageAppendix prunableMessageAppendix;
+    private Appendix.PrunablePlainMessageAppendix prunablePlainMessageAppendix;
 
     /** Prunable encrypted message appendix */
-    //private Appendix.PrunableEncryptedMessageAppendix prunableEncryptedMessageAppendix;
+    private Appendix.PrunableEncryptedMessageAppendix prunableEncryptedMessageAppendix;
 
     /** Public key announcement appendix */
     //private Appendix.PublicKeyAnnouncementAppendix publicKeyAnnouncementAppendix;
@@ -191,6 +191,15 @@ public class Transaction {
                     case "EncryptedMessage":
                         encryptedMessageAppendix = (Appendix.EncryptedMessageAppendix)appendix;
                         break;
+                    case "EncryptToSelfMessage":
+                        encryptToSelfMessageAppendix = (Appendix.EncryptToSelfMessageAppendix)appendix;
+                        break;
+                    case "PrunablePlainMessage":
+                        prunablePlainMessageAppendix = (Appendix.PrunablePlainMessageAppendix)appendix;
+                        break;
+                    case "PrunableEncryptedMessage":
+                        prunableEncryptedMessageAppendix = (Appendix.PrunableEncryptedMessageAppendix)appendix;
+                        break;
                 }
             }
         }
@@ -273,6 +282,15 @@ public class Transaction {
                             break;
                         case "EncryptedMessage":
                             encryptedMessageAppendix = (Appendix.EncryptedMessageAppendix)appendix;
+                            break;
+                        case "EncryptToSelfMessage":
+                            encryptToSelfMessageAppendix = (Appendix.EncryptToSelfMessageAppendix)appendix;
+                            break;
+                        case "PrunablePlainMessage":
+                            prunablePlainMessageAppendix = (Appendix.PrunablePlainMessageAppendix)appendix;
+                            break;
+                        case "PrunableEncryptedMessage":
+                            prunableEncryptedMessageAppendix = (Appendix.PrunableEncryptedMessageAppendix)appendix;
                             break;
                     }
                 }
@@ -437,12 +455,39 @@ public class Transaction {
     }
 
     /**
+     * Get the prunable plain message appendix
+     *
+     * @return                      Message appendix or null if there is no appendix
+     */
+    public Appendix.PrunablePlainMessageAppendix getPrunablePlainMessageAppendix() {
+        return prunablePlainMessageAppendix;
+    }
+
+    /**
      * Get the encrypted message appendix
      *
      * @return                      Encrypted message appendix or null if there is no appendix
      */
     public Appendix.EncryptedMessageAppendix getEncryptedMessageAppendix() {
         return encryptedMessageAppendix;
+    }
+
+    /**
+     * Get the prunable encrypted message appendix
+     *
+     * @return                      Encrypted message appendix or null if there is no appendix
+     */
+    public Appendix.PrunableEncryptedMessageAppendix getPrunableEncryptedMessageAppendix() {
+        return prunableEncryptedMessageAppendix;
+    }
+
+    /**
+     * Get the encrypt-to-self message appendix
+     *
+     * @return                      Encrypt-to-self message appendix or null if there is no appendix
+     */
+    public Appendix.EncryptToSelfMessageAppendix getEncryptToSelfMessageAppendix() {
+        return encryptToSelfMessageAppendix;
     }
 
     /**

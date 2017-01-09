@@ -28,6 +28,10 @@ import java.util.TreeMap;
  * A transaction can have zero or more appendices.  These appendices
  * are common to all transactions and are not dependent on the
  * transaction type.
+ * <p>
+ * A prunable appendix has a data hash as part of the signed transaction
+ * and the prunable data is in a separate JSON object.  This allows the
+ * prunable data to be discarded.
  */
 public abstract class Appendix {
 
@@ -38,9 +42,9 @@ public abstract class Appendix {
     public enum AppendixType {
         MessageAppendix(1, new MessageAppendix()),
         EncryptedMessageAppendix(2, new EncryptedMessageAppendix()),
-        EncryptToSelfMessageAppendix(4, null),
-        PrunablePlainMessageAppendix(8, null),
-        PrunableEncryptedMessageAppendix(16, null),
+        EncryptToSelfMessageAppendix(4, new EncryptToSelfMessageAppendix()),
+        PrunablePlainMessageAppendix(8, new PrunablePlainMessageAppendix()),
+        PrunableEncryptedMessageAppendix(16, new PrunableEncryptedMessageAppendix()),
         PublicKeyAnnouncementAppendix(32, null),
         PhasingAppendix(64, null);
 
@@ -211,6 +215,8 @@ public abstract class Appendix {
 
         /**
          * Get the message bytes
+         * <p>
+         * A text message is returned as a UTF-8 encoded byte array
          *
          * @return                  Message bytes
          */
@@ -220,6 +226,8 @@ public abstract class Appendix {
 
         /**
          * Get the message text
+         * <p>
+         * A binary message is returned as a hexadecimal string
          *
          * @return                  Message text
          */
@@ -304,36 +312,395 @@ public abstract class Appendix {
         }
 
         /**
-         * Get the decrypted message bytes
+         * Get the decrypted and uncompressed message bytes
+         * <p>
+         * A text message is returned as a UTF-8 encode byte array
          *
          * @param   secretPhrase    Account A secret phrase
          * @param   publicKey       Account B public key
          * @return                  Decrypted message bytes
+         * @throws  IOException     Unable to uncompress the message data
          */
-        public byte[] getMessageBytes(String secretPhrase, byte[] publicKey) {
+        public byte[] getMessageBytes(String secretPhrase, byte[] publicKey) throws IOException {
             byte[] privateKey = Crypto.getPrivateKey(secretPhrase);
             byte[] sharedKey = Crypto.getSharedKey(privateKey, publicKey, nonce);
             byte[] decryptedBytes = Crypto.aesDecrypt(encryptedData, sharedKey);
             if (isCompressed) {
-                try {
-                decryptedBytes = Utils.uncompress(decryptedBytes);
-                } catch (IOException exc) {
-                    throw new IllegalArgumentException("Unable to uncompress the data", exc);
-                }
+                decryptedBytes = Utils.uncompressBytes(decryptedBytes);
             }
             return decryptedBytes;
         }
 
         /**
-         * Get the message text
+         * Get the decrypted and uncompressed message text
+         * <p>
+         * A binary message is returned as a hexadecimal string
          *
          * @param   secretPhrase    Account A secret phrase
          * @param   publicKey       Account B public key
          * @return                  Message text
+         * @throws  IOException     Unable to uncompress the message data
          */
-        public String getMessage(String secretPhrase, byte[] publicKey) {
+        public String getMessage(String secretPhrase, byte[] publicKey) throws IOException {
             byte[] data = getMessageBytes(secretPhrase, publicKey);
             return (isText ? new String(data, UTF8) : Utils.toHexString(data));
+        }
+    }
+
+    /**
+     * Encrypted message to self appendix
+     */
+    public static class EncryptToSelfMessageAppendix extends Appendix {
+
+        @Override
+        protected Appendix parseAppendix(Response json)
+                throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            return new EncryptToSelfMessageAppendix(json);
+        }
+
+        @Override
+        protected Appendix parseAppendix(ByteBuffer buffer)
+                throws BufferUnderflowException, IllegalArgumentException {
+            return new EncryptToSelfMessageAppendix(buffer);
+        }
+
+        private byte[] encryptedData;
+        private byte[] nonce;
+        private boolean isText;
+        private boolean isCompressed;
+
+        private EncryptToSelfMessageAppendix() {
+            super("EncryptToSelfMessage");
+        }
+
+        private EncryptToSelfMessageAppendix(Response json)
+                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            super("EncryptToSelfMessage", json);
+            Response data = json.getObject("encryptToSelfMessage");
+            isText = data.getBoolean("isText");
+            isCompressed = data.getBoolean("isCompressed");
+            encryptedData = data.getHexString("data");
+            if (encryptedData.length < 16 || encryptedData.length % 16 != 0)
+                throw new IllegalArgumentException(
+                        "Encrypted data length " + encryptedData.length + " is not valid");
+            nonce = data.getHexString("nonce");
+            if (nonce.length != 32)
+                throw new IllegalArgumentException("Nonce length " + nonce.length + " is not valid");
+        }
+
+        private EncryptToSelfMessageAppendix(ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super("EncryptToSelfMessage", buffer);
+            int flags = buffer.get();
+            isText = ((flags & 1) != 0);
+            isCompressed = ((flags & 2) != 0);
+            int length = buffer.getShort();
+            if (length < 16 || length % 16 != 0)
+                throw new IllegalArgumentException(
+                        "Encrypted data length " + length + " is not valid");
+            encryptedData = new byte[length];
+            buffer.get(encryptedData);
+            nonce = new byte[32];
+            buffer.get(nonce);
+        }
+
+        /**
+         * Check if this is a text message
+         *
+         * @return                  TRUE if this is a text message
+         */
+        public boolean isText() {
+            return isText;
+        }
+
+        /**
+         * Check if the message is compressed
+         *
+         * @return                  TRUE if the message is compressed
+         */
+        public boolean isCompressed() {
+            return isCompressed;
+        }
+
+        /**
+         * Get the decrypted and uncompressed message bytes
+         * <p>
+         * A text message is returned as a UTF-8 encoded byte array
+         *
+         * @param   secretPhrase    Account secret phrase
+         * @return                  Decrypted message bytes
+         * @throws  IOException     Unable to uncompress the message data
+         * @throws  KeyException    Unable to get public key from secret phrase
+         */
+        public byte[] getMessageBytes(String secretPhrase) throws IOException, KeyException {
+            byte[] decryptedBytes;
+            byte[] privateKey = Crypto.getPrivateKey(secretPhrase);
+            byte[] publicKey = Crypto.getPublicKey(secretPhrase);
+            byte[] sharedKey = Crypto.getSharedKey(privateKey, publicKey, nonce);
+            decryptedBytes = Crypto.aesDecrypt(encryptedData, sharedKey);
+            if (isCompressed) {
+                decryptedBytes = Utils.uncompressBytes(decryptedBytes);
+            }
+            return decryptedBytes;
+        }
+
+        /**
+         * Get the decrypted and uncompressed message text
+         * <p>
+         * A binary message is returned as a hexadecimal string
+         *
+         * @param   secretPhrase    Account secret phrase
+         * @return                  Message text
+         * @throws  IOException     Unable to uncompress the message data
+         * @throws  KeyException    Unable to get public key from secret phrase
+         */
+        public String getMessage(String secretPhrase) throws IOException, KeyException {
+            byte[] data = getMessageBytes(secretPhrase);
+            return (isText ? new String(data, UTF8) : Utils.toHexString(data));
+        }
+    }
+
+    /**
+     * Prunable plain message appendix
+     */
+    public static class PrunablePlainMessageAppendix extends Appendix {
+
+        @Override
+        protected Appendix parseAppendix(Response json)
+                throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            return new PrunablePlainMessageAppendix(json);
+        }
+
+        @Override
+        protected Appendix parseAppendix(ByteBuffer buffer)
+                throws BufferUnderflowException, IllegalArgumentException {
+            return new PrunablePlainMessageAppendix(buffer);
+        }
+
+        private byte[] hashBytes;
+        private byte[] messageBytes;
+        private boolean isText;
+
+        private PrunablePlainMessageAppendix() {
+            super("PrunablePlainMessage");
+        }
+
+        private PrunablePlainMessageAppendix(Response json)
+                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            super("PrunablePlainMessage", json);
+            String data = json.getString("message");
+            //
+            // We have just the hash if the message has been pruned
+            //
+            if (data.length() > 0) {
+                isText = json.getBoolean("messageIsText");
+                messageBytes = (isText ? data.getBytes(UTF8) : Utils.parseHexString(data));
+            } else {
+                hashBytes = json.getHexString("hash");
+            }
+        }
+
+        private PrunablePlainMessageAppendix(ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super("PrunablePlainMessage", buffer);
+            int flags = buffer.get();
+            //
+            // We have just the hash if the message has been pruned
+            //
+            if ((flags & 1) != 0) {
+                isText = ((flags & 2) != 0);
+                int length = buffer.getInt();
+                messageBytes = new byte[length];
+                buffer.get(messageBytes);
+            } else {
+                hashBytes = new byte[32];
+                buffer.get(hashBytes);
+            }
+        }
+
+        /**
+         * Check if this is a text message
+         *
+         * @return                  TRUE if this is a text message
+         */
+        public boolean isText() {
+            return isText;
+        }
+
+        /**
+         * Get the message bytes
+         * <p>
+         * A text message is returned as a UTF-8 encoded byte array
+         *
+         * @return                  Message bytes or null if the message has been pruned
+         */
+        public byte[] getMessageBytes() {
+            return messageBytes;
+        }
+
+        /**
+         * Get the message hash
+         *
+         * @return                  32-byte message hash
+         */
+        public byte[] getMessageHash() {
+            if (hashBytes == null) {
+                byte[] flagByte = new byte[1];
+                flagByte[0] = (byte)(isText ? 1 : 0);
+                hashBytes = Crypto.singleDigest(flagByte, messageBytes);
+            }
+            return hashBytes;
+        }
+
+        /**
+         * Get the message text
+         * <p>
+         * A binary message is returned as a hexadecimal string
+         *
+         * @return                  Message text or null if the message has been pruned
+         */
+        public String getMessage() {
+            return (messageBytes != null ?
+                    (isText ? new String(messageBytes, UTF8) : Utils.toHexString(messageBytes)) : null);
+        }
+    }
+
+    /**
+     * Prunable encrypted message appendix
+     */
+    public static class PrunableEncryptedMessageAppendix extends Appendix {
+
+        @Override
+        protected Appendix parseAppendix(Response json)
+                throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            return new PrunableEncryptedMessageAppendix(json);
+        }
+
+        @Override
+        protected Appendix parseAppendix(ByteBuffer buffer)
+                throws BufferUnderflowException, IllegalArgumentException {
+            return new PrunableEncryptedMessageAppendix(buffer);
+        }
+
+        private byte[] hash;
+        private byte[] encryptedData;
+        private byte[] nonce;
+        private boolean isText;
+        private boolean isCompressed;
+
+        private PrunableEncryptedMessageAppendix() {
+            super("PrunableEncryptedMessage");
+        }
+
+        private PrunableEncryptedMessageAppendix(Response json)
+                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            super("PrunableEncryptedMessage", json);
+            Response data = json.getObject("encryptedMessage");
+            if (!data.getObjectMap().isEmpty()) {
+                isText = data.getBoolean("isText");
+                isCompressed = data.getBoolean("isCompressed");
+                encryptedData = data.getHexString("data");
+                if (encryptedData.length < 16 || encryptedData.length % 16 != 0)
+                    throw new IllegalArgumentException(
+                            "Encrypted data length " + encryptedData.length + " is not valid");
+                nonce = data.getHexString("nonce");
+                if (nonce.length != 32)
+                    throw new IllegalArgumentException("Nonce length " + nonce.length + " is not valid");
+            } else {
+                hash = json.getHexString("encryptedMessageHash");
+            }
+        }
+
+        private PrunableEncryptedMessageAppendix(ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super("PrunableEncryptedMessage", buffer);
+            int flags = buffer.get();
+            if ((flags & 1) != 0) {
+                isText = ((flags & 2) != 0);
+                isCompressed = ((flags & 4) != 0);
+                int length = buffer.getInt();
+                if (length < 16 || length % 16 != 0)
+                    throw new IllegalArgumentException(
+                            "Encrypted data length " + length + " is not valid");
+                encryptedData = new byte[length];
+                buffer.get(encryptedData);
+                nonce = new byte[32];
+                buffer.get(nonce);
+            } else {
+                hash = new byte[32];
+                buffer.get(hash);
+            }
+        }
+
+        /**
+         * Check if this is a text message
+         *
+         * @return                  TRUE if this is a text message
+         */
+        public boolean isText() {
+            return isText;
+        }
+
+        /**
+         * Check if the message is compressed
+         *
+         * @return                  TRUE if the message is compressed
+         */
+        public boolean isCompressed() {
+            return isCompressed;
+        }
+
+        /**
+         * Get the message hash
+         *
+         * @return                  32-byte message hash
+         */
+        public byte[] getMessageHash() {
+            if (hash == null) {
+                byte[] flags = new byte[2];
+                flags[0] = (byte)(isText ? 1 : 0);
+                flags[1] = (byte)(isCompressed ? 1 : 0);
+                hash = Crypto.singleDigest(flags, encryptedData, nonce);
+            }
+            return hash;
+        }
+
+        /**
+         * Get the decrypted and uncompressed message bytes
+         * <p>
+         * A text message is returned as a UTF-8 encode byte array
+         *
+         * @param   secretPhrase    Account A secret phrase
+         * @param   publicKey       Account B public key
+         * @return                  Decrypted message bytes or null if the message has been pruned
+         * @throws  IOException     Unable to uncompress the message data
+         */
+        public byte[] getMessageBytes(String secretPhrase, byte[] publicKey) throws IOException {
+            if (encryptedData == null)
+                return null;
+            byte[] privateKey = Crypto.getPrivateKey(secretPhrase);
+            byte[] sharedKey = Crypto.getSharedKey(privateKey, publicKey, nonce);
+            byte[] decryptedBytes = Crypto.aesDecrypt(encryptedData, sharedKey);
+            if (isCompressed) {
+                decryptedBytes = Utils.uncompressBytes(decryptedBytes);
+            }
+            return decryptedBytes;
+        }
+
+        /**
+         * Get the decrypted and uncompressed message text
+         * <p>
+         * A binary message is returned as a hexadecimal string
+         *
+         * @param   secretPhrase    Account A secret phrase
+         * @param   publicKey       Account B public key
+         * @return                  Message text
+         * @throws  IOException     Unable to uncompress the message data
+         */
+        public String getMessage(String secretPhrase, byte[] publicKey) throws IOException {
+            byte[] data = getMessageBytes(secretPhrase, publicKey);
+            return (data == null ? null :
+                    (isText ? new String(data, UTF8) : Utils.toHexString(data)));
         }
     }
 }
