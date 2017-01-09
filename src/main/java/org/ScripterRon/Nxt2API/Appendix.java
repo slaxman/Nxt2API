@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -45,8 +47,8 @@ public abstract class Appendix {
         EncryptToSelfMessageAppendix(4, new EncryptToSelfMessageAppendix()),
         PrunablePlainMessageAppendix(8, new PrunablePlainMessageAppendix()),
         PrunableEncryptedMessageAppendix(16, new PrunableEncryptedMessageAppendix()),
-        PublicKeyAnnouncementAppendix(32, null),
-        PhasingAppendix(64, null);
+        PublicKeyAnnouncementAppendix(32, new PublicKeyAnnouncementAppendix()),
+        PhasingAppendix(64, new PhasingAppendix());
 
         private static final SortedMap<Integer, AppendixType> sortedMap = new TreeMap<>();
         static {
@@ -703,4 +705,225 @@ public abstract class Appendix {
                     (isText ? new String(data, UTF8) : Utils.toHexString(data)));
         }
     }
+
+    /**
+     * Public key announcement appendix
+     */
+    public static class PublicKeyAnnouncementAppendix extends Appendix {
+
+        @Override
+        protected Appendix parseAppendix(Response json)
+                throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            return new PublicKeyAnnouncementAppendix(json);
+        }
+
+        @Override
+        protected Appendix parseAppendix(ByteBuffer buffer)
+                throws BufferUnderflowException, IllegalArgumentException {
+            return new PublicKeyAnnouncementAppendix(buffer);
+        }
+
+        private byte[] publicKey;
+
+        private PublicKeyAnnouncementAppendix() {
+            super("PublicKeyAnnouncement");
+        }
+
+        private PublicKeyAnnouncementAppendix(Response json)
+                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            super("PublicKeyAnnouncement", json);
+            publicKey = json.getHexString("recipientPublicKey");
+        }
+
+        private PublicKeyAnnouncementAppendix(ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super("PublicKeyAnnouncement", buffer);
+            publicKey = new byte[32];
+            buffer.get(publicKey);
+        }
+
+        /**
+         * Get the public key
+         *
+         * @return                  32-byte public key
+         */
+        public byte[] getPublicKey() {
+            return publicKey;
+        }
+    }
+
+    /**
+     * Phasing appendix
+     */
+    public static class PhasingAppendix extends Appendix {
+
+        @Override
+        protected Appendix parseAppendix(Response json)
+                throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            return new PhasingAppendix(json);
+        }
+
+        @Override
+        protected Appendix parseAppendix(ByteBuffer buffer)
+                throws BufferUnderflowException, IllegalArgumentException {
+            return new PhasingAppendix(buffer);
+        }
+
+        private int finishHeight;
+        private int votingModel;
+        private long quorum;
+        private long minBalance;
+        private List<Long> whitelistAccounts;
+        private long holdingId;
+        private int minBalanceModel;
+        private List<ChainTransactionId> linkedTransactions;
+        private byte[] hashedSecret;
+        private int hashedSecretAlgorithm;
+
+        private PhasingAppendix() {
+            super("Phasing");
+        }
+
+        private PhasingAppendix(Response json)
+                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            super("Phasing", json);
+            finishHeight = json.getInt("phasingFinishHeight");
+            votingModel = json.getInt("phasingVotingModel");
+            quorum = json.getLong("phasingQuorum");
+            minBalance = json.getLong("phasingMinBalance");
+            whitelistAccounts = json.getIdList("phasingWhitelist");
+            holdingId = json.getId("phasingHolding");
+            minBalanceModel = json.getInt("phasingMinBalanceModel");
+            List<Response> linkedList = json.getObjectList("phasingLinkedTransactions");
+            linkedTransactions = new ArrayList<>(linkedList.size());
+            for (Response link : linkedList) {
+                linkedTransactions.add(new ChainTransactionId(link.getInt("chain"),
+                        link.getHexString("transactionFullHash")));
+            }
+            hashedSecret = json.getHexString("phasingHashedSecret");
+            if (hashedSecret != null)
+                hashedSecretAlgorithm = json.getInt("phasingHashedSecretAlgorithm");
+        }
+
+        private PhasingAppendix(ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super("Phasing", buffer);
+            finishHeight = buffer.getInt();
+            votingModel = buffer.get();
+            quorum = buffer.getLong();
+            minBalance = buffer.getLong();
+            int count = buffer.get();
+            whitelistAccounts = new ArrayList<>(count);
+            for (int i=0; i<count; i++) {
+                whitelistAccounts.add(buffer.getLong());
+            }
+            holdingId = buffer.getLong();
+            minBalanceModel = buffer.get();
+            count = buffer.get();
+            linkedTransactions = new ArrayList<>(count);
+            for (int i=0; i<count; i++) {
+                byte[] hash = new byte[32];
+                int chainId = buffer.getInt();
+                buffer.get(hash);
+                linkedTransactions.add(new ChainTransactionId(chainId, hash));
+            }
+            count = buffer.get();
+            if (count > 0) {
+                hashedSecret = new byte[count];
+                buffer.get(hashedSecret);
+                hashedSecretAlgorithm = buffer.get();
+            }
+        }
+
+        /**
+         * Get the finish height
+         *
+         * @return                  Finish height
+         */
+        public int getFinishHeight() {
+            return finishHeight;
+        }
+
+        /**
+         * Get the voting model
+         *
+         * @return                  Voting model identifier
+         */
+        public int getVotingModel() {
+            return votingModel;
+        }
+
+        /**
+         * Get the quorum
+         *
+         * @return                  Quorum
+         */
+        public long getQuorum() {
+            return quorum;
+        }
+
+        /**
+         * Get the minimum balance model
+         *
+         * @return                  Minimum balance model identifier
+         */
+        public int getMinBalanceModel() {
+            return minBalanceModel;
+        }
+
+        /**
+         * Get the minimum balance
+         *
+         * @return                  Minimum balance
+         */
+        public long getMinBalance() {
+            return minBalance;
+        }
+
+        /**
+         * Get the whitelist accounts
+         *
+         * @return                  Whitelist account identifiers
+         */
+        public List<Long> getWhitelistAccounts() {
+            return whitelistAccounts;
+        }
+
+        /**
+         * Get the holding identifier
+         *
+         * @return                  Holding identifier
+         */
+        public long getHoldingId() {
+            return holdingId;
+        }
+
+        /**
+         * Get the linked transactions
+         *
+         * @return                  List of linked transactions
+         */
+        public List<ChainTransactionId> getLinkedTransactions() {
+            return linkedTransactions;
+        }
+
+        /**
+         * Get the hashed secret
+         *
+         * @return                  Hashed secret or null if no secret specified
+         */
+        public byte[] getHashedSecret() {
+            return hashedSecret;
+        }
+
+        /**
+         * Get the hashed secret algorithm
+         *
+         * @return                  Hashed secret algorithm
+         */
+        public int getHashedSecretAlgorithm() {
+            return hashedSecretAlgorithm;
+        }
+    }
+
 }

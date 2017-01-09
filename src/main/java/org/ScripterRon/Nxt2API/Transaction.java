@@ -104,10 +104,10 @@ public class Transaction {
     private Appendix.PrunableEncryptedMessageAppendix prunableEncryptedMessageAppendix;
 
     /** Public key announcement appendix */
-    //private Appendix.PublicKeyAnnouncementAppendix publicKeyAnnouncementAppendix;
+    private Appendix.PublicKeyAnnouncementAppendix publicKeyAnnouncementAppendix;
 
     /** Phasing appendix */
-    //private Appendix.PhasingAppendix phasingAppendix;
+    private Appendix.PhasingAppendix phasingAppendix;
 
     /** Block identifier */
     private long blockId;
@@ -200,6 +200,12 @@ public class Transaction {
                     case "PrunableEncryptedMessage":
                         prunableEncryptedMessageAppendix = (Appendix.PrunableEncryptedMessageAppendix)appendix;
                         break;
+                    case "PublicKeyAnnouncement":
+                        publicKeyAnnouncementAppendix = (Appendix.PublicKeyAnnouncementAppendix)appendix;
+                        break;
+                    case "Phasing":
+                        phasingAppendix = (Appendix.PhasingAppendix)appendix;
+                        break;
                 }
             }
         }
@@ -270,28 +276,40 @@ public class Transaction {
         // (1, 2, 4, 8, etc).  The appendix map is sorted by the flag bit, so we just
         // process the map values in order.
         //
-        SortedMap<Integer, Appendix.AppendixType> appendixMap = Appendix.AppendixType.getAppendixMap();
-        for (Appendix.AppendixType appendixType : appendixMap.values()) {
-            if ((flags & appendixType.getCode()) != 0) {
-                Appendix parser = appendixType.getAppendix();
-                if (parser != null) {
-                    Appendix appendix = parser.parseAppendix(buffer);
-                    switch (appendix.getName()) {
-                        case "Message":
-                            messageAppendix = (Appendix.MessageAppendix)appendix;
-                            break;
-                        case "EncryptedMessage":
-                            encryptedMessageAppendix = (Appendix.EncryptedMessageAppendix)appendix;
-                            break;
-                        case "EncryptToSelfMessage":
-                            encryptToSelfMessageAppendix = (Appendix.EncryptToSelfMessageAppendix)appendix;
-                            break;
-                        case "PrunablePlainMessage":
-                            prunablePlainMessageAppendix = (Appendix.PrunablePlainMessageAppendix)appendix;
-                            break;
-                        case "PrunableEncryptedMessage":
-                            prunableEncryptedMessageAppendix = (Appendix.PrunableEncryptedMessageAppendix)appendix;
-                            break;
+        if (attachment != null) {
+            SortedMap<Integer, Appendix.AppendixType> appendixMap = Appendix.AppendixType.getAppendixMap();
+            for (Appendix.AppendixType appendixType : appendixMap.values()) {
+                if ((flags & appendixType.getCode()) != 0) {
+                    Appendix parser = appendixType.getAppendix();
+                    if (parser != null) {
+                        Appendix appendix = parser.parseAppendix(buffer);
+                        switch (appendix.getName()) {
+                            case "Message":
+                                messageAppendix = (Appendix.MessageAppendix)appendix;
+                                break;
+                            case "EncryptedMessage":
+                                encryptedMessageAppendix = (Appendix.EncryptedMessageAppendix)appendix;
+                                break;
+                            case "EncryptToSelfMessage":
+                                encryptToSelfMessageAppendix =
+                                        (Appendix.EncryptToSelfMessageAppendix)appendix;
+                                break;
+                            case "PrunablePlainMessage":
+                                prunablePlainMessageAppendix =
+                                        (Appendix.PrunablePlainMessageAppendix)appendix;
+                                break;
+                            case "PrunableEncryptedMessage":
+                                prunableEncryptedMessageAppendix =
+                                        (Appendix.PrunableEncryptedMessageAppendix)appendix;
+                                break;
+                            case "PublicKeyAnnouncement":
+                                publicKeyAnnouncementAppendix =
+                                        (Appendix.PublicKeyAnnouncementAppendix)appendix;
+                                break;
+                            case "Phasing":
+                                phasingAppendix = (Appendix.PhasingAppendix)appendix;
+                                break;
+                        }
                     }
                 }
             }
@@ -488,6 +506,24 @@ public class Transaction {
      */
     public Appendix.EncryptToSelfMessageAppendix getEncryptToSelfMessageAppendix() {
         return encryptToSelfMessageAppendix;
+    }
+
+    /**
+     * Get the public key announcement appendix
+     *
+     * @return                      Public key announcement appendix or null if there is no appendix
+     */
+    public Appendix.PublicKeyAnnouncementAppendix getPublicKeyAnnouncementAppendix() {
+        return publicKeyAnnouncementAppendix;
+    }
+
+    /**
+     * Get the phasing appendix
+     *
+     * @return                      Phasing appendix or null if there is no appendix
+     */
+    public Appendix.PhasingAppendix getPhasingAppendix() {
+        return phasingAppendix;
     }
 
     /**

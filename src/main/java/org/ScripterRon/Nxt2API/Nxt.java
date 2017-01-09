@@ -54,6 +54,9 @@ public class Nxt {
     /** Nxt transaction types */
     private static final Map<Integer, TransactionType> transactionTypes = new HashMap<>();
 
+    /** Nxt voting models */
+    private static final Map<Integer, String> votingModels = new HashMap<>();
+
     /** UTF-8 character set */
     private static final Charset UTF8 = Charset.forName("UTF-8");
 
@@ -117,7 +120,7 @@ public class Nxt {
         // Get the transaction types
         //
         transactionTypes.clear();
-        ((Map<String, Object>)response.get("transactionTypes")).entrySet().forEach(entry -> {
+        response.getObject("transactionTypes").getObjectMap().entrySet().forEach(entry -> {
             int type = Integer.valueOf(entry.getKey());
             Map<String, Object> subtypes =
                     (Map<String, Object>)((Map<String, Object>)entry.getValue()).get("subtypes");
@@ -128,6 +131,13 @@ public class Nxt {
                 String name = (String)((Map<String, Object>)subentry.getValue()).get("name");
                 transactionTypes.put((type<<8) | subtype, new TransactionType(type, subtype, name));
             });
+        });
+        //
+        // Get the voting models
+        //
+        votingModels.clear();
+        response.getObject("votingModels").getObjectMap().entrySet().forEach(entry -> {
+            votingModels.put(((Long)entry.getValue()).intValue(), entry.getKey());
         });
     }
 
@@ -182,6 +192,30 @@ public class Nxt {
      */
     public static TransactionType getTransactionType(int type, int subtype) {
         return transactionTypes.get((type<<8) | subtype);
+    }
+
+    /**
+     * Get the voting model name for the supplied identifier
+     *
+     * @param   id                  Voting model identifier
+     * @return                      Voting model name or null if the model is not defined
+     */
+    public static String getVotingModelName(int id) {
+        return votingModels.get(id);
+    }
+
+    /**
+     * Get the voting model identifier for the supplied name
+     *
+     * @param   name                Voting model name
+     * @return                      Voting model identifier or -1 if the model is not defined
+     */
+    public static int getVotingModelId(String name) {
+        for (Map.Entry<Integer, String> entry : votingModels.entrySet()) {
+            if (entry.getValue().equals(name))
+                return entry.getKey();
+        }
+        return -1;
     }
 
     /**

@@ -33,8 +33,8 @@ public abstract class Attachment {
         FXT_CHILDCHAIN_BLOCK(-1, 0, null),
         FXT_ORDINARY_PAYMENT(-2, 0, new PaymentAttachment()),
         FXT_BALANCE_LEASING(-3, 0, null),
-        FXT_EXCHANGE_ORDER_ISSUE(-4, 0, new ExchangeOrderIssueAttachment()),
-        FXT_EXCHANGE_ORDER_CANCEL(-4, 1, new ExchangeOrderCancelAttachment()),
+        FXT_EXCHANGE_ORDER_ISSUE(-4, 0, new CoinExchangeAttachment.ExchangeOrderIssueAttachment()),
+        FXT_EXCHANGE_ORDER_CANCEL(-4, 1, new CoinExchangeAttachment.ExchangeOrderCancelAttachment()),
         ORDINARY_PAYMENT(0, 0, new PaymentAttachment()),
         ARBITRARY_MESSAGE(1, 0, new MessagingAttachment()),
         ASSET_ISSUANCE(2, 0, null),
@@ -61,7 +61,7 @@ public abstract class Attachment {
         CURRENCY_EXCHANGE_OFFER(5, 4, null),
         CURRENCY_EXCHANGE_BUY(5, 5, null),
         CURRENCY_EXCHANGE_SELL(5, 6, null),
-        CURRENCY_MINTING(5, 7, new CurrencyMintingAttachment()),
+        CURRENCY_MINTING(5, 7, new CurrencyAttachment.CurrencyMintingAttachment()),
         CURRENCY_DELETION(5, 8, null),
         TAGGED_DATA_UPLOAD(6, 0, null),
         SHUFFLING_CREATION(7, 0, null),
@@ -80,8 +80,8 @@ public abstract class Attachment {
         ACCOUNT_INFO(10, 0, null),
         ACCOUNT_PROPERTY_SET(10, 1, null),
         ACCOUNT_PROPERTY_DELETE(10, 2, null),
-        EXCHANGE_ORDER_ISSUE(11, 0, new ExchangeOrderIssueAttachment()),
-        EXCHANGE_ORDER_CANCEL(1, 1, new ExchangeOrderCancelAttachment());
+        EXCHANGE_ORDER_ISSUE(11, 0, new CoinExchangeAttachment.ExchangeOrderIssueAttachment()),
+        EXCHANGE_ORDER_CANCEL(1, 1, new CoinExchangeAttachment.ExchangeOrderCancelAttachment());
 
         private static final Map<Integer, AttachmentType> typeMap = new HashMap<>();
         static {
@@ -118,7 +118,7 @@ public abstract class Attachment {
     /**
      * Create a dummy attachment
      */
-    private Attachment() {
+    Attachment() {
     }
 
     /**
@@ -126,7 +126,7 @@ public abstract class Attachment {
      *
      * @param   transactionType             Transaction type
      */
-    private Attachment(TransactionType txType) {
+    Attachment(TransactionType txType) {
         transactionType = txType;
         version = 0;
     }
@@ -137,7 +137,7 @@ public abstract class Attachment {
      * @param   transactionType             Transaction type
      * @param   json                        Attachment JSON
      */
-    private Attachment(TransactionType txType, Response json) {
+    Attachment(TransactionType txType, Response json) {
         transactionType = txType;
         version = json.getInt("version." + txType.getName());
     }
@@ -148,7 +148,7 @@ public abstract class Attachment {
      * @param   transactionType             Transaction type
      * @param   buffer                      Attachment bytes
      */
-    private Attachment(TransactionType txType, ByteBuffer buffer) {
+    Attachment(TransactionType txType, ByteBuffer buffer) {
         version = buffer.get();
     }
 
@@ -242,222 +242,6 @@ public abstract class Attachment {
 
         private MessagingAttachment(TransactionType txType) {
             super(txType);
-        }
-    }
-
-    /**
-     * Coin Exchange order issue attachment
-     */
-    public static class ExchangeOrderIssueAttachment extends Attachment {
-
-        private Chain chain;
-        private Chain exchangeChain;
-        private long quantity;
-        private long price;
-
-        @Override
-        protected Attachment parseAttachment(TransactionType txType, Response json)
-                throws IllegalArgumentException, NumberFormatException {
-            return new ExchangeOrderIssueAttachment(txType, json);
-        }
-
-        @Override
-        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
-                throws BufferUnderflowException, IllegalArgumentException {
-            return new ExchangeOrderIssueAttachment(txType, buffer);
-        }
-
-        private ExchangeOrderIssueAttachment() {
-        }
-
-        private ExchangeOrderIssueAttachment(TransactionType txType, Response response)
-                throws IllegalArgumentException, NumberFormatException {
-            super(txType, response);
-            int chainId = response.getInt("chain");
-            chain = Nxt.getChain(chainId);
-            if (chain == null)
-                throw new IllegalArgumentException("Chain " + chainId + " is not defined");
-            chainId = response.getInt("exchangeChain");
-            exchangeChain = Nxt.getChain(chainId);
-            if (exchangeChain == null)
-                throw new IllegalArgumentException("Exchange chain " + chainId + " is not defined");
-            quantity = response.getLong("quantityQNT");
-            price = response.getLong("priceNQT");
-        }
-
-        private ExchangeOrderIssueAttachment(TransactionType txType, ByteBuffer buffer)
-                throws BufferUnderflowException, IllegalArgumentException {
-            super(txType, buffer);
-            int chainId = buffer.getInt();
-            chain = Nxt.getChain(chainId);
-            if (chain == null)
-                throw new IllegalArgumentException("Chain " + chainId + " is not defined");
-            chainId = buffer.getInt();
-            exchangeChain = Nxt.getChain(chainId);
-            if (exchangeChain == null)
-                throw new IllegalArgumentException("Exchange chain " + chainId + " is not defined");
-            quantity = buffer.getLong();
-            price = buffer.getLong();
-        }
-
-        /**
-         * Get the chain
-         *
-         * @return                      Chain
-         */
-        public Chain getChain() {
-            return chain;
-        }
-
-        /**
-         * Get the exchange chain
-         *
-         * @return                      Exchange chain
-         */
-        public Chain getExchangeChain() {
-            return exchangeChain;
-        }
-
-        /**
-         * Get the quantity
-         *
-         * @return                      Quantity
-         */
-        public long getQuantity() {
-            return quantity;
-        }
-
-        /**
-         * Get the price
-         *
-         * @return                      Price
-         */
-        public long getPrice() {
-            return price;
-        }
-    }
-
-    /**
-     * Coin Exchange order cancel attachment
-     */
-    public static class ExchangeOrderCancelAttachment extends Attachment {
-
-        private long orderId;
-
-        @Override
-        protected Attachment parseAttachment(TransactionType txType, Response json)
-                throws IdentifierException, NumberFormatException {
-            return new ExchangeOrderCancelAttachment(txType, json);
-        }
-
-        @Override
-        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
-                throws BufferUnderflowException, IllegalArgumentException {
-            return new ExchangeOrderCancelAttachment(txType, buffer);
-        }
-
-        private ExchangeOrderCancelAttachment() {
-        }
-
-        private ExchangeOrderCancelAttachment(TransactionType txType, Response response)
-                throws IdentifierException, NumberFormatException {
-            super(txType, response);
-            orderId = response.getId("order");
-        }
-
-        private ExchangeOrderCancelAttachment(TransactionType txType, ByteBuffer buffer)
-                throws BufferUnderflowException, IllegalArgumentException {
-            super(txType, buffer);
-            orderId = buffer.getLong();
-        }
-
-        /**
-         * Get the order identifier
-         *
-         * @return                      Order identifier
-         */
-        public long getOrderId() {
-            return orderId;
-        }
-    }
-
-    /**
-     * CurrencyMinting attachment
-     */
-    public static class CurrencyMintingAttachment extends Attachment {
-
-        private long nonce;
-        private long currencyId;
-        private long units;
-        private long counter;
-
-        @Override
-        protected Attachment parseAttachment(TransactionType txType, Response json)
-                throws IdentifierException, NumberFormatException {
-            return new CurrencyMintingAttachment(txType, json);
-        }
-
-        @Override
-        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
-                throws BufferUnderflowException, IllegalArgumentException {
-            return new CurrencyMintingAttachment(txType, buffer);
-        }
-
-        private CurrencyMintingAttachment() {
-        }
-
-        private CurrencyMintingAttachment(TransactionType txType, Response response)
-                throws IdentifierException, NumberFormatException {
-            super(txType, response);
-            nonce = response.getLong("nonce");
-            currencyId = response.getId("currency");
-            units = response.getLong("units");
-            counter = response.getLong("counter");
-        }
-
-        private CurrencyMintingAttachment(TransactionType txType, ByteBuffer buffer)
-                throws BufferUnderflowException, IllegalArgumentException {
-            super(txType, buffer);
-            this.nonce = buffer.getLong();
-            this.currencyId = buffer.getLong();
-            this.units = buffer.getLong();
-            this.counter = buffer.getLong();
-        }
-
-        /**
-         * Return the currency identifier
-         *
-         * @return                      Currency identifier
-         */
-        public long getCurrencyId() {
-            return currencyId;
-        }
-
-        /**
-         * Return the nonce
-         *
-         * @return                      Nonce
-         */
-        public long getNonce() {
-            return nonce;
-        }
-
-        /**
-         * Return the minting units
-         *
-         * @return                      Minting units
-         */
-        public long getUnits() {
-            return units;
-        }
-
-        /**
-         * Return the minting counter
-         *
-         * @return                      Minting counter
-         */
-        public long getCounter() {
-            return counter;
         }
     }
 }
