@@ -98,6 +98,8 @@ public abstract class CoinExchangeAttachment {
 
         /**
          * Get the quantity
+         * <p>
+         * The quantity has an implicit decimal point determined by the chain 'decimals' property
          *
          * @return                      Quantity
          */
@@ -107,6 +109,8 @@ public abstract class CoinExchangeAttachment {
 
         /**
          * Get the price
+         * <p>
+         * The price has an implicit decimal point determined by the chain 'decimals' property
          *
          * @return                      Price
          */

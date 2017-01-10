@@ -17,7 +17,10 @@ package org.ScripterRon.Nxt2API;
 
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,15 +33,15 @@ public abstract class Attachment {
 
     /** Attachment types */
     public enum AttachmentType {
-        FXT_CHILDCHAIN_BLOCK(-1, 0, null),
+        FXT_CHILDCHAIN_BLOCK(-1, 0, new ChildBlockAttachment()),
         FXT_ORDINARY_PAYMENT(-2, 0, new PaymentAttachment()),
-        FXT_BALANCE_LEASING(-3, 0, null),
+        FXT_BALANCE_LEASING(-3, 0, new EffectiveBalanceLeasingAttachment()),
         FXT_EXCHANGE_ORDER_ISSUE(-4, 0, new CoinExchangeAttachment.ExchangeOrderIssueAttachment()),
         FXT_EXCHANGE_ORDER_CANCEL(-4, 1, new CoinExchangeAttachment.ExchangeOrderCancelAttachment()),
         ORDINARY_PAYMENT(0, 0, new PaymentAttachment()),
         ARBITRARY_MESSAGE(1, 0, new MessagingAttachment()),
-        ASSET_ISSUANCE(2, 0, null),
-        ASSET_TRANSFER(2, 1, null),
+        ASSET_ISSUANCE(2, 0, new AssetAttachment.AssetIssuanceAttachment()),
+        ASSET_TRANSFER(2, 1, new AssetAttachment.AssetTransferAttachment()),
         ASSET_ASK_ORDER_PLACEMENT(2, 2, null),
         ASSET_BID_ORDER_PLACEMENT(2, 3, null),
         ASSET_ASK_ORDER_CANCELLATION(2, 4, null),
@@ -108,6 +111,9 @@ public abstract class Attachment {
             return attachment;
         }
     }
+
+    /** UTF-8 character set */
+    static final Charset UTF8 = Charset.forName("UTF-8");
 
     /** Attachment version */
     int version;
@@ -194,6 +200,145 @@ public abstract class Attachment {
      */
     abstract protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException;
+
+    /**
+     * Child block attachment
+     */
+    public static class ChildBlockAttachment extends Attachment {
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            return new ChildBlockAttachment(txType, json);
+        }
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            return new ChildBlockAttachment(txType, buffer);
+        }
+
+        private Chain chain;
+        private List<byte[]> fullHashes;
+        private byte[] hash;
+
+        private ChildBlockAttachment() {
+        }
+
+        private ChildBlockAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            super(txType, json);
+            int chainId = json.getInt("chain");
+            chain = Nxt.getChain(chainId);
+            if (chain == null)
+                throw new IllegalArgumentException("Chain '" + chainId + "' is not defined");
+            List<String> hashList = json.getStringList("childTransactionFullHashes");
+            if (!hashList.isEmpty()) {
+                fullHashes = new ArrayList<>(hashList.size());
+                for (String hashString : hashList) {
+                    fullHashes.add(Utils.parseHexString(hashString));
+                }
+            } else {
+                hash = json.getHexString("hash");
+            }
+        }
+
+        private ChildBlockAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super(txType, buffer);
+            int flags = buffer.get();
+            int chainId = buffer.getInt();
+            chain = Nxt.getChain(chainId);
+            if (chain == null)
+                throw new IllegalArgumentException("Chain '" + chainId + "' is not defined");
+            if ((flags & 1) != 0) {
+                int count = buffer.getShort();
+                fullHashes = new ArrayList<>(count);
+                for (int i=0; i<count; i++) {
+                    byte[] txHash = new byte[32];
+                    buffer.get(txHash);
+                    fullHashes.add(txHash);
+                }
+            } else {
+                hash = new byte[32];
+                buffer.get(hash);
+            }
+        }
+
+        /**
+         * Get the child chain
+         *
+         * @return                  Child chain
+         */
+        public Chain getChain() {
+            return chain;
+        }
+
+        /**
+         * Get the transaction full hashes
+         *
+         * @return                  List of transaction hashes or null if pruned
+         */
+        public List<byte[]> getTransactionFullHashes() {
+            return fullHashes;
+        }
+
+        /**
+         * Get the attachment hash
+         *
+         * @return                  Attachment hash
+         */
+        public byte[] getHash() {
+            if (hash == null) {
+                hash = Crypto.singleDigest(fullHashes);
+            }
+            return hash;
+        }
+    }
+
+    /**
+     * Effective balance leasing attachment
+     */
+    public static class EffectiveBalanceLeasingAttachment extends Attachment {
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            return new EffectiveBalanceLeasingAttachment(txType, json);
+        }
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            return new EffectiveBalanceLeasingAttachment(txType, buffer);
+        }
+
+        private int period;
+
+        private EffectiveBalanceLeasingAttachment() {
+        }
+
+        private EffectiveBalanceLeasingAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            super(txType, json);
+            period = json.getInt("period");
+        }
+
+        private EffectiveBalanceLeasingAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super(txType, buffer);
+            period = buffer.getShort();
+        }
+
+        /**
+         * Get the lease period
+         *
+         * @return                  Lease period in blocks
+         */
+        public int getPeriod() {
+            return period;
+        }
+    }
 
     /**
      * Payment attachment

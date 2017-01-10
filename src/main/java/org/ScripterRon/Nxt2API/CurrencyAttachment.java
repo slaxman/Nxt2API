@@ -86,6 +86,8 @@ public abstract class CurrencyAttachment {
 
         /**
          * Return the minting units
+         * <p>
+         * The minting units has an implicit decimal point determined by the currency 'decimals' property
          *
          * @return                      Minting units
          */

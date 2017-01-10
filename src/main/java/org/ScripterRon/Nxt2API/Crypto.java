@@ -20,6 +20,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.List;
 
 import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
@@ -105,6 +106,22 @@ public class Crypto {
             digest.reset();
             for (byte[] input : inputs)
                 digest.update(input);
+            bytes = digest.digest();
+        }
+        return bytes;
+    }
+
+    /**
+     * Calculate the SHA-256 hash for a list of byte arrays
+     *
+     * @param       inputList           Data to be hashed
+     * @return                          The hash digest
+     */
+    public static byte[] singleDigest(List<byte[]> inputList) {
+        byte[] bytes;
+        synchronized(digest) {
+            digest.reset();
+            inputList.forEach(input -> digest.update(input));
             bytes = digest.digest();
         }
         return bytes;

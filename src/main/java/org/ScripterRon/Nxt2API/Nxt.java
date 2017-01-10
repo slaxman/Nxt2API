@@ -81,6 +81,8 @@ public class Nxt {
     /** Use SSL connections */
     private static boolean useSSL;
 
+    private Nxt() {}
+
     /**
      * Initialize the Nxt API library
      * <p>
@@ -291,7 +293,8 @@ public class Nxt {
         if (prunableJSON != null && prunableJSON.length() > 0) {
             return issueRequest("broadcastTransaction",
                     String.format("transactionBytes=%s&prunableAttachmentJSON=%s",
-                            Utils.toHexString(transactionBytes), prunableJSON),
+                            Utils.toHexString(transactionBytes),
+                            URLEncoder.encode(prunableJSON, "UTF-8")),
                     DEFAULT_READ_TIMEOUT);
         } else {
             return issueRequest("broadcastTransaction",
