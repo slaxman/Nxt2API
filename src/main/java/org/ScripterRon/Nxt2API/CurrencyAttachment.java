@@ -24,9 +24,9 @@ import java.nio.ByteBuffer;
 public abstract class CurrencyAttachment {
 
     /**
-     * CurrencyMinting attachment
+     * Currency Minting attachment
      */
-    public static class CurrencyMintingAttachment extends Attachment {
+    public static class MintingAttachment extends Attachment {
 
         private long nonce;
         private long currencyId;
@@ -36,19 +36,19 @@ public abstract class CurrencyAttachment {
         @Override
         protected Attachment parseAttachment(TransactionType txType, Response json)
                     throws IdentifierException, NumberFormatException {
-            return new CurrencyMintingAttachment(txType, json);
+            return new MintingAttachment(txType, json);
         }
 
         @Override
         protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
-            return new CurrencyMintingAttachment(txType, buffer);
+            return new MintingAttachment(txType, buffer);
         }
 
-        CurrencyMintingAttachment() {
+        MintingAttachment() {
         }
 
-        CurrencyMintingAttachment(TransactionType txType, Response response)
+        MintingAttachment(TransactionType txType, Response response)
                     throws IdentifierException, NumberFormatException {
             super(txType, response);
             nonce = response.getLong("nonce");
@@ -57,7 +57,7 @@ public abstract class CurrencyAttachment {
             counter = response.getLong("counter");
         }
 
-        CurrencyMintingAttachment(TransactionType txType, ByteBuffer buffer)
+        MintingAttachment(TransactionType txType, ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
             super(txType, buffer);
             this.nonce = buffer.getLong();

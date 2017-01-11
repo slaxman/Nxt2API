@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedMap;
 
 /**
@@ -87,6 +88,9 @@ public class Transaction {
 
     /** Transaction attachment */
     private Attachment attachment;
+
+    /** Appendices */
+    private final List<Appendix> appendices = new ArrayList<>();
 
     /** Plain message appendix */
     private Appendix.MessageAppendix messageAppendix;
@@ -165,6 +169,9 @@ public class Transaction {
         int type = response.getInt("type");
         int subtype = response.getInt("subtype");
         transactionType = Nxt.getTransactionType(type, subtype);
+        if (transactionType == null)
+            throw new IllegalArgumentException(
+                    String.format("Unknown transaction: Type %d, Subtype %d", type, subtype));
         //
         // Get the transaction attachment
         //
@@ -184,29 +191,7 @@ public class Transaction {
             Appendix parser = appendixType.getAppendix();
             if (parser != null && attachmentJSON.getInt("version." + parser.getName()) > 0) {
                 Appendix appendix = parser.parseAppendix(attachmentJSON);
-                switch (appendix.getName()) {
-                    case "Message":
-                        messageAppendix = (Appendix.MessageAppendix)appendix;
-                        break;
-                    case "EncryptedMessage":
-                        encryptedMessageAppendix = (Appendix.EncryptedMessageAppendix)appendix;
-                        break;
-                    case "EncryptToSelfMessage":
-                        encryptToSelfMessageAppendix = (Appendix.EncryptToSelfMessageAppendix)appendix;
-                        break;
-                    case "PrunablePlainMessage":
-                        prunablePlainMessageAppendix = (Appendix.PrunablePlainMessageAppendix)appendix;
-                        break;
-                    case "PrunableEncryptedMessage":
-                        prunableEncryptedMessageAppendix = (Appendix.PrunableEncryptedMessageAppendix)appendix;
-                        break;
-                    case "PublicKeyAnnouncement":
-                        publicKeyAnnouncementAppendix = (Appendix.PublicKeyAnnouncementAppendix)appendix;
-                        break;
-                    case "Phasing":
-                        phasingAppendix = (Appendix.PhasingAppendix)appendix;
-                        break;
-                }
+                addAppendix(appendix);
             }
         }
         //
@@ -283,33 +268,7 @@ public class Transaction {
                     Appendix parser = appendixType.getAppendix();
                     if (parser != null) {
                         Appendix appendix = parser.parseAppendix(buffer);
-                        switch (appendix.getName()) {
-                            case "Message":
-                                messageAppendix = (Appendix.MessageAppendix)appendix;
-                                break;
-                            case "EncryptedMessage":
-                                encryptedMessageAppendix = (Appendix.EncryptedMessageAppendix)appendix;
-                                break;
-                            case "EncryptToSelfMessage":
-                                encryptToSelfMessageAppendix =
-                                        (Appendix.EncryptToSelfMessageAppendix)appendix;
-                                break;
-                            case "PrunablePlainMessage":
-                                prunablePlainMessageAppendix =
-                                        (Appendix.PrunablePlainMessageAppendix)appendix;
-                                break;
-                            case "PrunableEncryptedMessage":
-                                prunableEncryptedMessageAppendix =
-                                        (Appendix.PrunableEncryptedMessageAppendix)appendix;
-                                break;
-                            case "PublicKeyAnnouncement":
-                                publicKeyAnnouncementAppendix =
-                                        (Appendix.PublicKeyAnnouncementAppendix)appendix;
-                                break;
-                            case "Phasing":
-                                phasingAppendix = (Appendix.PhasingAppendix)appendix;
-                                break;
-                        }
+                        addAppendix(appendix);
                     }
                 }
             }
@@ -332,6 +291,38 @@ public class Transaction {
             byte[] signatureHash = Crypto.singleDigest(signature);
             fullHash = Crypto.singleDigest(data, signatureHash);
             id = Utils.fullHashToId(fullHash);
+        }
+    }
+
+    /**
+     * Add an appendix to the transaction
+     *
+     * @param   appendix            Appendix to add
+     */
+    private void addAppendix(Appendix appendix) {
+        appendices.add(appendix);
+        switch (appendix.getAppendixType()) {
+            case MessageAppendix:
+                messageAppendix = (Appendix.MessageAppendix)appendix;
+                break;
+            case EncryptedMessageAppendix:
+                encryptedMessageAppendix = (Appendix.EncryptedMessageAppendix)appendix;
+                break;
+            case EncryptToSelfMessageAppendix:
+                encryptToSelfMessageAppendix = (Appendix.EncryptToSelfMessageAppendix)appendix;
+                break;
+            case PrunablePlainMessageAppendix:
+                prunablePlainMessageAppendix = (Appendix.PrunablePlainMessageAppendix)appendix;
+                break;
+            case PrunableEncryptedMessageAppendix:
+                prunableEncryptedMessageAppendix = (Appendix.PrunableEncryptedMessageAppendix)appendix;
+                break;
+            case PublicKeyAnnouncementAppendix:
+                publicKeyAnnouncementAppendix = (Appendix.PublicKeyAnnouncementAppendix)appendix;
+                break;
+            case PhasingAppendix:
+                phasingAppendix = (Appendix.PhasingAppendix)appendix;
+                break;
         }
     }
 
@@ -450,7 +441,7 @@ public class Transaction {
      *
      * @return                      EC block identifier
      */
-    public long getEcBlockIdentifier() {
+    public long getEcBlockId() {
         return ecBlockId;
     }
 
@@ -590,5 +581,55 @@ public class Transaction {
         return timestamp.equals(tx.timestamp) && senderId == tx.senderId &&
                 recipientId == tx.recipientId && amount == tx.amount &&
                 transactionType.equals(tx.transactionType);
+    }
+
+    /**
+     * Return a string representation of the transaction, including the
+     * attachment and any appendices
+     *
+     * @param   sb                  String builder
+     * @return                      The supplied string builder
+     */
+    public StringBuilder toString(StringBuilder sb) {
+        //
+        // Process base transaction fields
+        //
+        sb.append("Type:  ").append(getTransactionType().getName()).append("\n")
+                .append("ID:  ").append(Utils.idToString(getId())).append("\n")
+                .append("Full Hash:  ").append(Utils.toHexString(getFullHash())).append("\n")
+                .append("Chain:  ").append(getChain().getName()).append("\n")
+                .append("Timestamp:  ").append(getTimestamp()).append("\n")
+                .append("Deadline:  ").append(getDeadline()).append("\n")
+                .append("Sender:  ").append(Utils.getAccountRsId(getSenderId())).append("\n");
+        if (getRecipientId() != 0)
+            sb.append("Recipient:  ").append(Utils.getAccountRsId(getRecipientId())).append("\n");
+        sb.append("Amount:  ").append(Utils.nqtToString(getAmount(), getChain().getDecimals())).append("\n")
+                .append("Fee:  ").append(Utils.nqtToString(getFee(), getChain().getDecimals())).append("\n")
+                .append("EC Height:  ").append(getEcBlockHeight()).append("\n")
+                .append("EC Block:  ").append(Utils.idToString(getEcBlockId())).append("\n");
+        if (getHeight() != 0)
+            sb.append("Height:  ").append(getHeight()).append("\n")
+                    .append("Block:  ").append(Utils.idToString(getBlockId())).append("\n");
+        //
+        // Process the attachment
+        //
+        if (attachment != null)
+            attachment.toString(sb);
+        //
+        // Process each appendix
+        //
+        appendices.forEach(appendix -> appendix.toString(sb));
+        return sb;
+    }
+
+    /**
+     * Return a string representation of the transaction, including the
+     * attachment and any appendices
+     *
+     * @return                      String representation
+     */
+    @Override
+    public String toString() {
+        return toString(new StringBuilder(512)).toString();
     }
 }

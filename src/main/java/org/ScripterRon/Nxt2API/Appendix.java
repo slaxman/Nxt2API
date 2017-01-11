@@ -88,35 +88,44 @@ public abstract class Appendix {
     /** Appendix name */
     String name;
 
+    /** Appendix type */
+    AppendixType appendixType;
+
     /**
      * Create an appendix
      *
-     * @param   name                        Appendix name
+     * @param   name                Appendix name
+     * @param   appendixType        Appendix type
      */
-    private Appendix(String name) {
+    private Appendix(String name, AppendixType appendixType) {
         this.name = name;
+        this.appendixType = appendixType;
         this.version = 0;
     }
 
     /**
      * Create an appendix
      *
-     * @param   name                        Appendix name
-     * @param   json                        Appendix JSON
+     * @param   name                Appendix name
+     * @param   appendixType        Appendix type
+     * @param   json                Appendix JSON
      */
-    private Appendix(String name, Response json) {
+    private Appendix(String name, AppendixType appendixType, Response json) {
         this.name = name;
+        this.appendixType = appendixType;
         this.version = json.getInt("version." + name);
     }
 
     /**
      * Create an appendix
      *
-     * @param   name                        Appendix name
-     * @param   buffer                      Appendix bytes
+     * @param   name                Appendix name
+     * @param   appendixType        Appendix type
+     * @param   buffer              Appendix bytes
      */
-    private Appendix(String name, ByteBuffer buffer) {
+    private Appendix(String name, AppendixType appendixType, ByteBuffer buffer) {
         this.name = name;
+        this.appendixType = appendixType;
         this.version = buffer.get();
     }
 
@@ -136,6 +145,15 @@ public abstract class Appendix {
      */
     public String getName() {
         return name;
+    }
+
+    /**
+     * Get the appendix type
+     *
+     * @return                      Appendix type
+     */
+    public AppendixType getAppendixType() {
+        return appendixType;
     }
 
     /**
@@ -182,12 +200,12 @@ public abstract class Appendix {
         private boolean isText;
 
         private MessageAppendix() {
-            super("Message");
+            super("Message", AppendixType.MessageAppendix);
         }
 
         private MessageAppendix(Response json)
                     throws IdentifierException, IllegalArgumentException, NumberFormatException {
-            super("Message", json);
+            super("Message", AppendixType.MessageAppendix, json);
             isText = json.getBoolean("messageIsText");
             if (isText) {
                 messageBytes = json.getString("message").getBytes(UTF8);
@@ -198,7 +216,7 @@ public abstract class Appendix {
 
         private MessageAppendix(ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
-            super("Message", buffer);
+            super("Message", AppendixType.MessageAppendix, buffer);
             int flags = buffer.get();
             isText = ((flags & 1) != 0);
             int length = buffer.getShort();
@@ -236,6 +254,20 @@ public abstract class Appendix {
         public String getMessage() {
             return (isText ? new String(messageBytes, UTF8) : Utils.toHexString(messageBytes));
         }
+
+        /**
+         * Return a string representation of this appendix
+         *
+         * @param   sb              String builder
+         * @return                  The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Is Text:  ").append(isText).append("\n")
+                    .append("  Message:  ").append(getMessage()).append("\n");
+            return sb;
+        }
     }
 
     /**
@@ -261,12 +293,12 @@ public abstract class Appendix {
         private boolean isCompressed;
 
         private EncryptedMessageAppendix() {
-            super("EncryptedMessage");
+            super("EncryptedMessage", AppendixType.EncryptedMessageAppendix);
         }
 
         private EncryptedMessageAppendix(Response json)
                     throws IdentifierException, IllegalArgumentException, NumberFormatException {
-            super("EncryptedMessage", json);
+            super("EncryptedMessage", AppendixType.EncryptedMessageAppendix, json);
             Response data = json.getObject("encryptedMessage");
             isText = data.getBoolean("isText");
             isCompressed = data.getBoolean("isCompressed");
@@ -281,7 +313,7 @@ public abstract class Appendix {
 
         private EncryptedMessageAppendix(ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
-            super("EncryptedMessage", buffer);
+            super("EncryptedMessage", AppendixType.EncryptedMessageAppendix, buffer);
             int flags = buffer.get();
             isText = ((flags & 1) != 0);
             isCompressed = ((flags & 2) != 0);
@@ -347,6 +379,22 @@ public abstract class Appendix {
             byte[] data = getMessageBytes(secretPhrase, publicKey);
             return (isText ? new String(data, UTF8) : Utils.toHexString(data));
         }
+
+        /**
+         * Return a string representation of this appendix
+         *
+         * @param   sb              String builder
+         * @return                  The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Is Text:  ").append(isText).append("\n")
+                    .append("  Is Compressed:  ").append(isCompressed).append("\n")
+                    .append("  Nonce:  ").append(Utils.toHexString(nonce)).append("\n")
+                    .append("  Encrypted Data:  ").append(Utils.toHexString(encryptedData)).append("\n");
+            return sb;
+        }
     }
 
     /**
@@ -372,12 +420,12 @@ public abstract class Appendix {
         private boolean isCompressed;
 
         private EncryptToSelfMessageAppendix() {
-            super("EncryptToSelfMessage");
+            super("EncryptToSelfMessage", AppendixType.EncryptToSelfMessageAppendix);
         }
 
         private EncryptToSelfMessageAppendix(Response json)
                     throws IdentifierException, IllegalArgumentException, NumberFormatException {
-            super("EncryptToSelfMessage", json);
+            super("EncryptToSelfMessage", AppendixType.EncryptToSelfMessageAppendix, json);
             Response data = json.getObject("encryptToSelfMessage");
             isText = data.getBoolean("isText");
             isCompressed = data.getBoolean("isCompressed");
@@ -392,7 +440,7 @@ public abstract class Appendix {
 
         private EncryptToSelfMessageAppendix(ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
-            super("EncryptToSelfMessage", buffer);
+            super("EncryptToSelfMessage", AppendixType.EncryptToSelfMessageAppendix, buffer);
             int flags = buffer.get();
             isText = ((flags & 1) != 0);
             isCompressed = ((flags & 2) != 0);
@@ -460,6 +508,22 @@ public abstract class Appendix {
             byte[] data = getMessageBytes(secretPhrase);
             return (isText ? new String(data, UTF8) : Utils.toHexString(data));
         }
+
+        /**
+         * Return a string representation of this appendix
+         *
+         * @param   sb              String builder
+         * @return                  The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Is Text:  ").append(isText).append("\n")
+                    .append("  Is Compressed:  ").append(isCompressed).append("\n")
+                    .append("  Nonce:  ").append(Utils.toHexString(nonce)).append("\n")
+                    .append("  Encrypted Data:  ").append(Utils.toHexString(encryptedData)).append("\n");
+            return sb;
+        }
     }
 
     /**
@@ -484,12 +548,12 @@ public abstract class Appendix {
         private boolean isText;
 
         private PrunablePlainMessageAppendix() {
-            super("PrunablePlainMessage");
+            super("PrunablePlainMessage", AppendixType.PrunablePlainMessageAppendix);
         }
 
         private PrunablePlainMessageAppendix(Response json)
                     throws IdentifierException, IllegalArgumentException, NumberFormatException {
-            super("PrunablePlainMessage", json);
+            super("PrunablePlainMessage", AppendixType.PrunablePlainMessageAppendix, json);
             String data = json.getString("message");
             //
             // We have just the hash if the message has been pruned
@@ -504,7 +568,7 @@ public abstract class Appendix {
 
         private PrunablePlainMessageAppendix(ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
-            super("PrunablePlainMessage", buffer);
+            super("PrunablePlainMessage", AppendixType.PrunablePlainMessageAppendix, buffer);
             int flags = buffer.get();
             //
             // We have just the hash if the message has been pruned
@@ -565,6 +629,22 @@ public abstract class Appendix {
             return (messageBytes != null ?
                     (isText ? new String(messageBytes, UTF8) : Utils.toHexString(messageBytes)) : null);
         }
+
+        /**
+         * Return a string representation of this appendix
+         *
+         * @param   sb              String builder
+         * @return                  The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            if (messageBytes != null)
+                sb.append("  Is Text:  ").append(isText).append("\n")
+                        .append("  Message:  ").append(getMessage()).append("\n");
+            sb.append("  Message Hash:  ").append(Utils.toHexString(getMessageHash())).append("\n");
+            return sb;
+        }
     }
 
     /**
@@ -591,12 +671,12 @@ public abstract class Appendix {
         private boolean isCompressed;
 
         private PrunableEncryptedMessageAppendix() {
-            super("PrunableEncryptedMessage");
+            super("PrunableEncryptedMessage", AppendixType.PrunableEncryptedMessageAppendix);
         }
 
         private PrunableEncryptedMessageAppendix(Response json)
                     throws IdentifierException, IllegalArgumentException, NumberFormatException {
-            super("PrunableEncryptedMessage", json);
+            super("PrunableEncryptedMessage", AppendixType.PrunableEncryptedMessageAppendix, json);
             Response data = json.getObject("encryptedMessage");
             if (!data.getObjectMap().isEmpty()) {
                 isText = data.getBoolean("isText");
@@ -615,7 +695,7 @@ public abstract class Appendix {
 
         private PrunableEncryptedMessageAppendix(ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
-            super("PrunableEncryptedMessage", buffer);
+            super("PrunableEncryptedMessage", AppendixType.PrunableEncryptedMessageAppendix, buffer);
             int flags = buffer.get();
             if ((flags & 1) != 0) {
                 isText = ((flags & 2) != 0);
@@ -704,6 +784,24 @@ public abstract class Appendix {
             return (data == null ? null :
                     (isText ? new String(data, UTF8) : Utils.toHexString(data)));
         }
+
+        /**
+         * Return a string representation of this appendix
+         *
+         * @param   sb              String builder
+         * @return                  The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            if (encryptedData != null)
+                sb.append("  Is Text:  ").append(isText).append("\n")
+                        .append("  Is Compressed:  ").append(isCompressed).append("\n")
+                        .append("  Nonce:  ").append(Utils.toHexString(nonce)).append("\n")
+                        .append("  Encrypted Data:  ").append(Utils.toHexString(encryptedData)).append("\n");
+            sb.append("  Message Hash:  ").append(Utils.toHexString(getMessageHash())).append("\n");
+            return sb;
+        }
     }
 
     /**
@@ -726,18 +824,18 @@ public abstract class Appendix {
         private byte[] publicKey;
 
         private PublicKeyAnnouncementAppendix() {
-            super("PublicKeyAnnouncement");
+            super("PublicKeyAnnouncement", AppendixType.PublicKeyAnnouncementAppendix);
         }
 
         private PublicKeyAnnouncementAppendix(Response json)
                     throws IdentifierException, IllegalArgumentException, NumberFormatException {
-            super("PublicKeyAnnouncement", json);
+            super("PublicKeyAnnouncement", AppendixType.PublicKeyAnnouncementAppendix, json);
             publicKey = json.getHexString("recipientPublicKey");
         }
 
         private PublicKeyAnnouncementAppendix(ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
-            super("PublicKeyAnnouncement", buffer);
+            super("PublicKeyAnnouncement", AppendixType.PublicKeyAnnouncementAppendix, buffer);
             publicKey = new byte[32];
             buffer.get(publicKey);
         }
@@ -749,6 +847,19 @@ public abstract class Appendix {
          */
         public byte[] getPublicKey() {
             return publicKey;
+        }
+
+        /**
+         * Return a string representation of this appendix
+         *
+         * @param   sb              String builder
+         * @return                  The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Public Key:  ").append(Utils.toHexString(getPublicKey())).append("\n");
+            return sb;
         }
     }
 
@@ -781,12 +892,12 @@ public abstract class Appendix {
         private int hashedSecretAlgorithm;
 
         private PhasingAppendix() {
-            super("Phasing");
+            super("Phasing", AppendixType.PhasingAppendix);
         }
 
         private PhasingAppendix(Response json)
                     throws IdentifierException, IllegalArgumentException, NumberFormatException {
-            super("Phasing", json);
+            super("Phasing", AppendixType.PhasingAppendix, json);
             finishHeight = json.getInt("phasingFinishHeight");
             votingModel = json.getInt("phasingVotingModel");
             quorum = json.getLong("phasingQuorum");
@@ -807,7 +918,7 @@ public abstract class Appendix {
 
         private PhasingAppendix(ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
-            super("Phasing", buffer);
+            super("Phasing", AppendixType.PhasingAppendix, buffer);
             finishHeight = buffer.getInt();
             votingModel = buffer.get();
             quorum = buffer.getLong();
@@ -924,6 +1035,64 @@ public abstract class Appendix {
         public int getHashedSecretAlgorithm() {
             return hashedSecretAlgorithm;
         }
+
+        /**
+         * Return a string representation of this appendix
+         *
+         * @param   sb              String builder
+         * @return                  The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Finish Height:  ").append(getFinishHeight()).append("\n")
+                    .append("  Voting Model:  ").append(Nxt.getVotingModel(getVotingModel())).append("\n")
+                    .append("  Quorum:  ").append(getQuorum()).append("\n");
+            if (getMinBalance() != 0)
+                sb.append("  Minimum Balance:  ").append(getMinBalance()).append("\n")
+                        .append("  Minimum Balance Model:  ")
+                        .append(Nxt.getVotingModel(getMinBalanceModel()))
+                        .append("\n");
+            if (!getWhitelistAccounts().isEmpty()) {
+                getWhitelistAccounts().forEach(account -> sb.append("  Whitelist:  ")
+                        .append(Utils.getAccountRsId(account)).append("\n"));
+            }
+            if (getHoldingId() != 0)
+                sb.append("  Holding ID:  ").append(Utils.idToString(getHoldingId())).append("\n");
+            if (!getLinkedTransactions().isEmpty())
+                getLinkedTransactions().forEach(link -> sb.append("  Linked Transaction:").append("\n")
+                        .append("    Chain:  ").append(link.getChain().getName()).append("\n")
+                        .append("    Full Hash: ")
+                                .append(Utils.toHexString(link.getFullHash()))
+                                .append("\n"));
+            if (getHashedSecret() != null)
+                sb.append("  Hashed Secret:  ")
+                                .append(Utils.toHexString(getHashedSecret())).append("\n")
+                        .append("  Hashed Secret Algorithm:  ")
+                                .append(Nxt.getPhasingHashAlgorithm(getHashedSecretAlgorithm()))
+                                .append("\n");
+            return sb;
+        }
     }
 
+    /**
+     * Return a string representation of the appendix
+     *
+     * @param   sb                  String builder
+     * @return                      The supplied string builder
+     */
+    public StringBuilder toString(StringBuilder sb) {
+        sb.append("Appendix:  ").append(getName()).append("\n");
+        return sb;
+    }
+
+    /**
+     * Return a string representation of the appendix
+     *
+     * @return                      String representation
+     */
+    @Override
+    public String toString() {
+        return toString(new StringBuilder(64)).toString();
+    }
 }

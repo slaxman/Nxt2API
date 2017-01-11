@@ -24,31 +24,31 @@ import java.nio.ByteBuffer;
 public abstract class CoinExchangeAttachment {
 
     /**
-     * Coin Exchange order issue attachment
+     * Order Issue attachment
      */
-    public static class ExchangeOrderIssueAttachment extends Attachment {
+    public static class OrderIssueAttachment extends Attachment {
 
         private Chain chain;
         private Chain exchangeChain;
-        private long quantity;
+        private long amount;
         private long price;
 
         @Override
         protected Attachment parseAttachment(TransactionType txType, Response json)
                 throws IllegalArgumentException, NumberFormatException {
-            return new ExchangeOrderIssueAttachment(txType, json);
+            return new OrderIssueAttachment(txType, json);
         }
 
         @Override
         protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException {
-            return new ExchangeOrderIssueAttachment(txType, buffer);
+            return new OrderIssueAttachment(txType, buffer);
         }
 
-        ExchangeOrderIssueAttachment() {
+        OrderIssueAttachment() {
         }
 
-        ExchangeOrderIssueAttachment(TransactionType txType, Response response)
+        OrderIssueAttachment(TransactionType txType, Response response)
                 throws IllegalArgumentException, NumberFormatException {
             super(txType, response);
             int chainId = response.getInt("chain");
@@ -59,11 +59,11 @@ public abstract class CoinExchangeAttachment {
             exchangeChain = Nxt.getChain(chainId);
             if (exchangeChain == null)
                 throw new IllegalArgumentException("Exchange chain " + chainId + " is not defined");
-            quantity = response.getLong("quantityQNT");
+            amount = response.getLong("amountNQT");
             price = response.getLong("priceNQT");
         }
 
-        ExchangeOrderIssueAttachment(TransactionType txType, ByteBuffer buffer)
+        OrderIssueAttachment(TransactionType txType, ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException {
             super(txType, buffer);
             int chainId = buffer.getInt();
@@ -74,7 +74,7 @@ public abstract class CoinExchangeAttachment {
             exchangeChain = Nxt.getChain(chainId);
             if (exchangeChain == null)
                 throw new IllegalArgumentException("Exchange chain " + chainId + " is not defined");
-            quantity = buffer.getLong();
+            amount = buffer.getLong();
             price = buffer.getLong();
         }
 
@@ -97,14 +97,14 @@ public abstract class CoinExchangeAttachment {
         }
 
         /**
-         * Get the quantity
+         * Get the amount
          * <p>
-         * The quantity has an implicit decimal point determined by the chain 'decimals' property
+         * The amount has an implicit decimal point determined by the chain 'decimals' property
          *
          * @return                      Quantity
          */
-        public long getQuantity() {
-            return quantity;
+        public long getAmount() {
+            return amount;
         }
 
         /**
@@ -117,40 +117,60 @@ public abstract class CoinExchangeAttachment {
         public long getPrice() {
             return price;
         }
+
+        /**
+         * Return a string representation of the attachment
+         *
+         * @param   sb                  String builder
+         * @return                      The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Chain:  ").append(chain.getName()).append("\n")
+                    .append("  Exchange Chain:  ").append(exchangeChain.getName()).append("\n")
+                    .append("  Amount:  ").append(Utils.nqtToString(amount, chain.getDecimals())).append("\n")
+                    .append("  Price:  ").append(Utils.nqtToString(price, chain.getDecimals())).append("\n");
+            return sb;
+        }
     }
 
     /**
-     * Coin Exchange order cancel attachment
+     * Order Cancel attachment
      */
-    public static class ExchangeOrderCancelAttachment extends Attachment {
+    public static class OrderCancelAttachment extends Attachment {
 
         private long orderId;
+        private byte[] orderHash;
 
         @Override
         protected Attachment parseAttachment(TransactionType txType, Response json)
                 throws IdentifierException, NumberFormatException {
-            return new ExchangeOrderCancelAttachment(txType, json);
+            return new OrderCancelAttachment(txType, json);
         }
 
         @Override
         protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException {
-            return new ExchangeOrderCancelAttachment(txType, buffer);
+            return new OrderCancelAttachment(txType, buffer);
         }
 
-        ExchangeOrderCancelAttachment() {
+        OrderCancelAttachment() {
         }
 
-        ExchangeOrderCancelAttachment(TransactionType txType, Response response)
+        OrderCancelAttachment(TransactionType txType, Response response)
                 throws IdentifierException, NumberFormatException {
             super(txType, response);
-            orderId = response.getId("order");
+            orderHash = response.getHexString("orderHash");
+            orderId = Utils.fullHashToId(orderHash);
         }
 
-        ExchangeOrderCancelAttachment(TransactionType txType, ByteBuffer buffer)
+        OrderCancelAttachment(TransactionType txType, ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException {
             super(txType, buffer);
-            orderId = buffer.getLong();
+            orderHash = new byte[32];
+            buffer.get(orderHash);
+            orderId = Utils.fullHashToId(orderHash);
         }
 
         /**
@@ -160,6 +180,28 @@ public abstract class CoinExchangeAttachment {
          */
         public long getOrderId() {
             return orderId;
+        }
+
+        /**
+         * Get the order hash
+         *
+         * @return                      Order hash
+         */
+        public byte[] getOrderHash() {
+            return orderHash;
+        }
+
+        /**
+         * Return a string representation of the attachment
+         *
+         * @param   sb                  String builder
+         * @return                      The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Order:  ").append(Utils.idToString(orderId)).append("\n");
+            return sb;
         }
     }
 }

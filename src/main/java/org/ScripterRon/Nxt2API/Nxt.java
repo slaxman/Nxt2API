@@ -57,6 +57,9 @@ public class Nxt {
     /** Nxt voting models */
     private static final Map<Integer, String> votingModels = new HashMap<>();
 
+    /** Nxt phasing hash algorithms */
+    private static final Map<Integer, String> phasingHashAlgorithms = new HashMap<>();
+
     /** UTF-8 character set */
     private static final Charset UTF8 = Charset.forName("UTF-8");
 
@@ -141,6 +144,13 @@ public class Nxt {
         response.getObject("votingModels").getObjectMap().entrySet().forEach(entry -> {
             votingModels.put(((Long)entry.getValue()).intValue(), entry.getKey());
         });
+        //
+        // Get the phasing hash algorithms
+        //
+        phasingHashAlgorithms.clear();
+        response.getObject("phasingHashAlgorithms").getObjectMap().entrySet().forEach(entry -> {
+            phasingHashAlgorithms.put(((Long)entry.getValue()).intValue(), entry.getKey());
+        });
     }
 
     /**
@@ -202,7 +212,7 @@ public class Nxt {
      * @param   id                  Voting model identifier
      * @return                      Voting model name or null if the model is not defined
      */
-    public static String getVotingModelName(int id) {
+    public static String getVotingModel(int id) {
         return votingModels.get(id);
     }
 
@@ -210,12 +220,38 @@ public class Nxt {
      * Get the voting model identifier for the supplied name
      *
      * @param   name                Voting model name
-     * @return                      Voting model identifier or -1 if the model is not defined
+     * @return                      Voting model identifier or -1 if not defined
      */
-    public static int getVotingModelId(String name) {
+    public static int getVotingModel(String name) {
         for (Map.Entry<Integer, String> entry : votingModels.entrySet()) {
-            if (entry.getValue().equals(name))
+            if (entry.getValue().equals(name)) {
                 return entry.getKey();
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Get the phasing algorithm name for the supplied identifier
+     *
+     * @param   id                  Hash algorithm identifier
+     * @return                      Algorithm name or null if the algorithm is not defined
+     */
+    public static String getPhasingHashAlgorithm(int id) {
+        return phasingHashAlgorithms.get(id);
+    }
+
+    /**
+     * Get the phasing algorithm identifier for the supplied name
+     *
+     * @param   name                Hash algorithm name
+     * @return                      Hash algorithm identifier or -1 if not defined
+     */
+    public static int getPhasingHashAlgorithm(String name) {
+        for (Map.Entry<Integer, String> entry : phasingHashAlgorithms.entrySet()) {
+            if (entry.getValue().equals(name)) {
+                return entry.getKey();
+            }
         }
         return -1;
     }

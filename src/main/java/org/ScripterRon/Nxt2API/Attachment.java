@@ -36,17 +36,17 @@ public abstract class Attachment {
         FXT_CHILDCHAIN_BLOCK(-1, 0, new ChildBlockAttachment()),
         FXT_ORDINARY_PAYMENT(-2, 0, new PaymentAttachment()),
         FXT_BALANCE_LEASING(-3, 0, new EffectiveBalanceLeasingAttachment()),
-        FXT_EXCHANGE_ORDER_ISSUE(-4, 0, new CoinExchangeAttachment.ExchangeOrderIssueAttachment()),
-        FXT_EXCHANGE_ORDER_CANCEL(-4, 1, new CoinExchangeAttachment.ExchangeOrderCancelAttachment()),
+        FXT_EXCHANGE_ORDER_ISSUE(-4, 0, new CoinExchangeAttachment.OrderIssueAttachment()),
+        FXT_EXCHANGE_ORDER_CANCEL(-4, 1, new CoinExchangeAttachment.OrderCancelAttachment()),
         ORDINARY_PAYMENT(0, 0, new PaymentAttachment()),
         ARBITRARY_MESSAGE(1, 0, new MessagingAttachment()),
         ASSET_ISSUANCE(2, 0, new AssetAttachment.AssetIssuanceAttachment()),
         ASSET_TRANSFER(2, 1, new AssetAttachment.AssetTransferAttachment()),
-        ASSET_ASK_ORDER_PLACEMENT(2, 2, null),
-        ASSET_BID_ORDER_PLACEMENT(2, 3, null),
-        ASSET_ASK_ORDER_CANCELLATION(2, 4, null),
-        ASSET_BID_ORDER_CANCELLATION(2, 5, null),
-        ASSET_DIVIDEND_PAYMENT(2, 6, null),
+        ASSET_ASK_ORDER_PLACEMENT(2, 2, new AssetAttachment.AskOrderPlacementAttachment()),
+        ASSET_BID_ORDER_PLACEMENT(2, 3, new AssetAttachment.BidOrderPlacementAttachment()),
+        ASSET_ASK_ORDER_CANCELLATION(2, 4, new AssetAttachment.AskOrderCancellationAttachment()),
+        ASSET_BID_ORDER_CANCELLATION(2, 5, new AssetAttachment.BidOrderCancellationAttachment()),
+        ASSET_DIVIDEND_PAYMENT(2, 6, new AssetAttachment.DividendPaymentAttachment()),
         ASSET_DELETE(2, 7, null),
         DIGITAL_GOODS_LISTING(3, 0, null),
         DIGITAL_GOODS_DELISTING(3, 1, null),
@@ -64,7 +64,7 @@ public abstract class Attachment {
         CURRENCY_EXCHANGE_OFFER(5, 4, null),
         CURRENCY_EXCHANGE_BUY(5, 5, null),
         CURRENCY_EXCHANGE_SELL(5, 6, null),
-        CURRENCY_MINTING(5, 7, new CurrencyAttachment.CurrencyMintingAttachment()),
+        CURRENCY_MINTING(5, 7, new CurrencyAttachment.MintingAttachment()),
         CURRENCY_DELETION(5, 8, null),
         TAGGED_DATA_UPLOAD(6, 0, null),
         SHUFFLING_CREATION(7, 0, null),
@@ -83,8 +83,8 @@ public abstract class Attachment {
         ACCOUNT_INFO(10, 0, null),
         ACCOUNT_PROPERTY_SET(10, 1, null),
         ACCOUNT_PROPERTY_DELETE(10, 2, null),
-        EXCHANGE_ORDER_ISSUE(11, 0, new CoinExchangeAttachment.ExchangeOrderIssueAttachment()),
-        EXCHANGE_ORDER_CANCEL(1, 1, new CoinExchangeAttachment.ExchangeOrderCancelAttachment());
+        EXCHANGE_ORDER_ISSUE(11, 0, new CoinExchangeAttachment.OrderIssueAttachment()),
+        EXCHANGE_ORDER_CANCEL(11, 1, new CoinExchangeAttachment.OrderCancelAttachment());
 
         private static final Map<Integer, AttachmentType> typeMap = new HashMap<>();
         static {
@@ -294,6 +294,26 @@ public abstract class Attachment {
             }
             return hash;
         }
+
+        /**
+         * Return a string representation of this attachment
+         *
+         * @param   sb              String builder
+         * @return                  The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            if (fullHashes != null) {
+                sb.append("  Chain:  ").append(chain.getName()).append("\n");
+                if (!getTransactionFullHashes().isEmpty()) {
+                    getTransactionFullHashes().forEach(txHash ->
+                        sb.append("  Tx Hash:  ").append(Utils.toHexString(txHash)).append("\n"));
+                }
+            }
+            sb.append("  Hash:  ").append(Utils.toHexString(getHash())).append("\n");
+            return sb;
+        }
     }
 
     /**
@@ -337,6 +357,19 @@ public abstract class Attachment {
          */
         public int getPeriod() {
             return period;
+        }
+
+        /**
+         * Return a string representation of this attachment
+         *
+         * @param   sb              String builder
+         * @return                  The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Period:  ").append(getPeriod()).append("\n");
+            return sb;
         }
     }
 
@@ -388,5 +421,26 @@ public abstract class Attachment {
         private MessagingAttachment(TransactionType txType) {
             super(txType);
         }
+    }
+
+    /**
+     * Return a string representation of the attachment
+     *
+     * @param   sb                  String builder
+     * @return                      The supplied string builder
+     */
+    public StringBuilder toString(StringBuilder sb) {
+        sb.append("Attachment:  ").append(getTransactionType().getName()).append("\n");
+        return sb;
+    }
+
+    /**
+     * Return a string representation of the attachment
+     *
+     * @return                      String representation
+     */
+    @Override
+    public String toString() {
+        return toString(new StringBuilder(64)).toString();
     }
 }
