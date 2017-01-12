@@ -26,18 +26,18 @@ public abstract class AssetAttachment {
     /**
      * Asset Issuance attachment
      */
-    public static class AssetIssuanceAttachment extends Attachment {
+    public static class IssuanceAttachment extends Attachment {
 
         @Override
         protected Attachment parseAttachment(TransactionType txType, Response json)
                     throws IdentifierException, NumberFormatException {
-            return new AssetIssuanceAttachment(txType, json);
+            return new IssuanceAttachment(txType, json);
         }
 
         @Override
         protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
-            return new AssetIssuanceAttachment(txType, buffer);
+            return new IssuanceAttachment(txType, buffer);
         }
 
         private String name;
@@ -45,10 +45,10 @@ public abstract class AssetAttachment {
         private long quantity;
         private int decimals;
 
-        AssetIssuanceAttachment() {
+        IssuanceAttachment() {
         }
 
-        AssetIssuanceAttachment(TransactionType txType, Response json)
+        IssuanceAttachment(TransactionType txType, Response json)
                     throws IdentifierException, NumberFormatException {
             super(txType, json);
             name = json.getString("name");
@@ -57,17 +57,11 @@ public abstract class AssetAttachment {
             decimals = json.getInt("decimals");
         }
 
-        AssetIssuanceAttachment(TransactionType txType, ByteBuffer buffer)
+        IssuanceAttachment(TransactionType txType, ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
             super(txType, buffer);
-            int length = buffer.get();
-            byte[] bytes = new byte[length];
-            buffer.get(bytes);
-            name = new String(bytes, UTF8);
-            length = buffer.getShort();
-            bytes = new byte[length];
-            buffer.get(bytes);
-            description = new String(bytes, UTF8);
+            name = readString(buffer.get(), buffer);
+            description = readString(buffer.getShort(), buffer);
             quantity = buffer.getLong();
             decimals = buffer.get();
         }
@@ -93,7 +87,7 @@ public abstract class AssetAttachment {
         /**
          * Get the asset quantity
          * <p>
-         * The asset quantity has an implicit decimal point determined by the 'decimals' property
+         * The asset quantity has an implied decimal point determined by the 'decimals' property
          *
          * @return                  Asset quantity
          */
@@ -121,7 +115,7 @@ public abstract class AssetAttachment {
             super.toString(sb);
             sb.append("  Name:  ").append(name).append("\n")
                     .append("  Description:  ").append(description).append("\n")
-                    .append("  Quantity:  ").append(String.format("%,d", quantity)).append("\n")
+                    .append("  Quantity:  ").append(Utils.nqtToString(quantity, decimals)).append("\n")
                     .append("  Decimals:  ").append(decimals).append("\n");
             return sb;
         }
@@ -130,34 +124,34 @@ public abstract class AssetAttachment {
     /**
      * Asset Transfer attachment
      */
-    public static class AssetTransferAttachment extends Attachment {
+    public static class TransferAttachment extends Attachment {
 
         @Override
         protected Attachment parseAttachment(TransactionType txType, Response json)
                     throws IdentifierException, NumberFormatException {
-            return new AssetTransferAttachment(txType, json);
+            return new TransferAttachment(txType, json);
         }
 
         @Override
         protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
-            return new AssetTransferAttachment(txType, buffer);
+            return new TransferAttachment(txType, buffer);
         }
 
         private long assetId;
         private long quantity;
 
-        AssetTransferAttachment() {
+        TransferAttachment() {
         }
 
-        AssetTransferAttachment(TransactionType txType, Response json)
+        TransferAttachment(TransactionType txType, Response json)
                     throws IdentifierException, NumberFormatException {
             super(txType, json);
             assetId = json.getId("asset");
             quantity = json.getLong("quantityQNT");
         }
 
-        AssetTransferAttachment(TransactionType txType, ByteBuffer buffer)
+        TransferAttachment(TransactionType txType, ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
             super(txType, buffer);
             assetId = buffer.getLong();
@@ -169,14 +163,14 @@ public abstract class AssetAttachment {
          *
          * @return                  Asset identifier
          */
-        public long getId() {
+        public long getAssetId() {
             return assetId;
         }
 
         /**
          * Get the asset quantity
          * <p>
-         * The asset quantity has an implicit decimal point determined by the 'decimals' property
+         * The asset quantity has an implied decimal point determined by the asset 'decimals' property
          *
          * @return                  Asset quantity
          */
@@ -244,14 +238,14 @@ public abstract class AssetAttachment {
          *
          * @return                  Asset identifier
          */
-        public long getId() {
+        public long getAssetId() {
             return assetId;
         }
 
         /**
          * Get the asset quantity
          * <p>
-         * The asset quantity has an implicit decimal point determined by the 'decimals' property
+         * The asset quantity has an implied decimal point determined by the asset 'decimals' property
          *
          * @return                  Asset quantity
          */
@@ -262,7 +256,7 @@ public abstract class AssetAttachment {
         /**
          * Get the ask price
          * <p>
-         * The ask price has an implicit decimal point determined by the 'decimals' property
+         * The ask price has an implied decimal point determined by the asset 'decimals' property
          */
         public long getPrice() {
             return price;
@@ -329,14 +323,14 @@ public abstract class AssetAttachment {
          *
          * @return                  Asset identifier
          */
-        public long getId() {
+        public long getAssetId() {
             return assetId;
         }
 
         /**
          * Get the asset quantity
          * <p>
-         * The asset quantity has an implicit decimal point determined by the 'decimals' property
+         * The asset quantity has an implied decimal point determined by the asset 'decimals' property
          *
          * @return                  Asset quantity
          */
@@ -347,7 +341,7 @@ public abstract class AssetAttachment {
         /**
          * Get the ask price
          * <p>
-         * The ask price has an implicit decimal point determined by the 'decimals' property
+         * The ask price has an implied decimal point determined by the asset 'decimals' property
          */
         public long getPrice() {
             return price;
@@ -554,7 +548,7 @@ public abstract class AssetAttachment {
          *
          * @return                  Asset identifier
          */
-        public long getId() {
+        public long getAssetId() {
             return assetId;
         }
 
@@ -587,7 +581,79 @@ public abstract class AssetAttachment {
             super.toString(sb);
             sb.append("  Asset:  ").append(Utils.idToString(assetId)).append("\n")
                     .append("  Height:  ").append(height).append("\n")
-                    .append("  Dividend:  ").append(dividendAmount).append("\n");
+                    .append("  Dividend:  ").append(String.format("%,d", dividendAmount)).append("\n");
+            return sb;
+        }
+    }
+
+    /**
+     * Asset Delete attachment
+     */
+    public static class DeleteAttachment extends Attachment {
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            return new DeleteAttachment(txType, json);
+        }
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            return new DeleteAttachment(txType, buffer);
+        }
+
+        private long assetId;
+        private long quantity;
+
+        DeleteAttachment() {
+        }
+
+        DeleteAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            super(txType, json);
+            assetId = json.getId("asset");
+            quantity = json.getLong("quantityQNT");
+        }
+
+        DeleteAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super(txType, buffer);
+            assetId = buffer.getLong();
+            quantity = buffer.getLong();
+        }
+
+        /**
+         * Get the asset identifier
+         *
+         * @return                  Asset identifier
+         */
+        public long getAssetId() {
+            return assetId;
+        }
+
+        /**
+         * Get the quantity
+         * <p>
+         * The quantity has an implied decimal point determined by the asset 'decimals' property
+         *
+         * @return                  Quantity
+         */
+        public long getQuantity() {
+            return quantity;
+        }
+
+        /**
+         * Return a string representation of this attachment
+         *
+         * @param   sb              String builder
+         * @return                  The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Asset:  ").append(Utils.idToString(assetId)).append("\n")
+                    .append("  Quantity:  ").append(String.format("%,d", quantity)).append("\n");
             return sb;
         }
     }

@@ -880,13 +880,8 @@ public abstract class Appendix {
             return new PhasingAppendix(buffer);
         }
 
+        private PhasingParameters phasingParams;
         private int finishHeight;
-        private int votingModel;
-        private long quorum;
-        private long minBalance;
-        private List<Long> whitelistAccounts;
-        private long holdingId;
-        private int minBalanceModel;
         private List<ChainTransactionId> linkedTransactions;
         private byte[] hashedSecret;
         private int hashedSecretAlgorithm;
@@ -899,12 +894,7 @@ public abstract class Appendix {
                     throws IdentifierException, IllegalArgumentException, NumberFormatException {
             super("Phasing", AppendixType.PhasingAppendix, json);
             finishHeight = json.getInt("phasingFinishHeight");
-            votingModel = json.getInt("phasingVotingModel");
-            quorum = json.getLong("phasingQuorum");
-            minBalance = json.getLong("phasingMinBalance");
-            whitelistAccounts = json.getIdList("phasingWhitelist");
-            holdingId = json.getId("phasingHolding");
-            minBalanceModel = json.getInt("phasingMinBalanceModel");
+            phasingParams = new PhasingParameters(json);
             List<Response> linkedList = json.getObjectList("phasingLinkedTransactions");
             linkedTransactions = new ArrayList<>(linkedList.size());
             for (Response link : linkedList) {
@@ -920,17 +910,8 @@ public abstract class Appendix {
                     throws BufferUnderflowException, IllegalArgumentException {
             super("Phasing", AppendixType.PhasingAppendix, buffer);
             finishHeight = buffer.getInt();
-            votingModel = buffer.get();
-            quorum = buffer.getLong();
-            minBalance = buffer.getLong();
+            phasingParams = new PhasingParameters(buffer);
             int count = buffer.get();
-            whitelistAccounts = new ArrayList<>(count);
-            for (int i=0; i<count; i++) {
-                whitelistAccounts.add(buffer.getLong());
-            }
-            holdingId = buffer.getLong();
-            minBalanceModel = buffer.get();
-            count = buffer.get();
             linkedTransactions = new ArrayList<>(count);
             for (int i=0; i<count; i++) {
                 byte[] hash = new byte[32];
@@ -956,57 +937,12 @@ public abstract class Appendix {
         }
 
         /**
-         * Get the voting model
+         * Get the phasing parameters
          *
-         * @return                  Voting model identifier
+         * @return                  Phasing parameters
          */
-        public int getVotingModel() {
-            return votingModel;
-        }
-
-        /**
-         * Get the quorum
-         *
-         * @return                  Quorum
-         */
-        public long getQuorum() {
-            return quorum;
-        }
-
-        /**
-         * Get the minimum balance model
-         *
-         * @return                  Minimum balance model identifier
-         */
-        public int getMinBalanceModel() {
-            return minBalanceModel;
-        }
-
-        /**
-         * Get the minimum balance
-         *
-         * @return                  Minimum balance
-         */
-        public long getMinBalance() {
-            return minBalance;
-        }
-
-        /**
-         * Get the whitelist accounts
-         *
-         * @return                  Whitelist account identifiers
-         */
-        public List<Long> getWhitelistAccounts() {
-            return whitelistAccounts;
-        }
-
-        /**
-         * Get the holding identifier
-         *
-         * @return                  Holding identifier
-         */
-        public long getHoldingId() {
-            return holdingId;
+        public PhasingParameters getPhasingParams() {
+            return phasingParams;
         }
 
         /**
@@ -1045,20 +981,8 @@ public abstract class Appendix {
         @Override
         public StringBuilder toString(StringBuilder sb) {
             super.toString(sb);
-            sb.append("  Finish Height:  ").append(getFinishHeight()).append("\n")
-                    .append("  Voting Model:  ").append(Nxt.getVotingModel(getVotingModel())).append("\n")
-                    .append("  Quorum:  ").append(getQuorum()).append("\n");
-            if (getMinBalance() != 0)
-                sb.append("  Minimum Balance:  ").append(getMinBalance()).append("\n")
-                        .append("  Minimum Balance Model:  ")
-                        .append(Nxt.getVotingModel(getMinBalanceModel()))
-                        .append("\n");
-            if (!getWhitelistAccounts().isEmpty()) {
-                getWhitelistAccounts().forEach(account -> sb.append("  Whitelist:  ")
-                        .append(Utils.getAccountRsId(account)).append("\n"));
-            }
-            if (getHoldingId() != 0)
-                sb.append("  Holding ID:  ").append(Utils.idToString(getHoldingId())).append("\n");
+            sb.append("  Finish Height:  ").append(getFinishHeight()).append("\n");
+            phasingParams.toString(sb);
             if (!getLinkedTransactions().isEmpty())
                 getLinkedTransactions().forEach(link -> sb.append("  Linked Transaction:").append("\n")
                         .append("    Chain:  ").append(link.getChain().getName()).append("\n")

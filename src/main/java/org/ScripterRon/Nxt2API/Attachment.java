@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 /**
  * Transaction attachment
@@ -40,24 +42,24 @@ public abstract class Attachment {
         FXT_EXCHANGE_ORDER_CANCEL(-4, 1, new CoinExchangeAttachment.OrderCancelAttachment()),
         ORDINARY_PAYMENT(0, 0, new PaymentAttachment()),
         ARBITRARY_MESSAGE(1, 0, new MessagingAttachment()),
-        ASSET_ISSUANCE(2, 0, new AssetAttachment.AssetIssuanceAttachment()),
-        ASSET_TRANSFER(2, 1, new AssetAttachment.AssetTransferAttachment()),
+        ASSET_ISSUANCE(2, 0, new AssetAttachment.IssuanceAttachment()),
+        ASSET_TRANSFER(2, 1, new AssetAttachment.TransferAttachment()),
         ASSET_ASK_ORDER_PLACEMENT(2, 2, new AssetAttachment.AskOrderPlacementAttachment()),
         ASSET_BID_ORDER_PLACEMENT(2, 3, new AssetAttachment.BidOrderPlacementAttachment()),
         ASSET_ASK_ORDER_CANCELLATION(2, 4, new AssetAttachment.AskOrderCancellationAttachment()),
         ASSET_BID_ORDER_CANCELLATION(2, 5, new AssetAttachment.BidOrderCancellationAttachment()),
         ASSET_DIVIDEND_PAYMENT(2, 6, new AssetAttachment.DividendPaymentAttachment()),
-        ASSET_DELETE(2, 7, null),
-        DIGITAL_GOODS_LISTING(3, 0, null),
-        DIGITAL_GOODS_DELISTING(3, 1, null),
-        DIGITAL_GOODS_PRICE_CHANGE(3, 2, null),
-        DIGITAL_GOODS_QUANTITY_CHANGE(3, 3, null),
-        DIGITAL_GOODS_PURCHASE(3, 4, null),
-        DIGITAL_GOODS_DELIVERY(3, 5, null),
-        DIGITAL_GOODS_FEEDBACK(3, 6, null),
-        DIGITAL_GOODS_REFUND(3, 7, null),
-        ACCOUNT_CONTROL_PHASING_ONLY(4, 0, null),
-        CURRENCY_ISSUANCE(5, 0, null),
+        ASSET_DELETE(2, 7, new AssetAttachment.DeleteAttachment()),
+        DIGITAL_GOODS_LISTING(3, 0, new DigitalGoodsAttachment.ListingAttachment()),
+        DIGITAL_GOODS_DELISTING(3, 1, new DigitalGoodsAttachment.DelistingAttachment()),
+        DIGITAL_GOODS_PRICE_CHANGE(3, 2, new DigitalGoodsAttachment.PriceChangeAttachment()),
+        DIGITAL_GOODS_QUANTITY_CHANGE(3, 3, new DigitalGoodsAttachment.QuantityChangeAttachment()),
+        DIGITAL_GOODS_PURCHASE(3, 4, new DigitalGoodsAttachment.PurchaseAttachment()),
+        DIGITAL_GOODS_DELIVERY(3, 5, new DigitalGoodsAttachment.DeliveryAttachment()),
+        DIGITAL_GOODS_FEEDBACK(3, 6, new DigitalGoodsAttachment.FeedbackAttachment()),
+        DIGITAL_GOODS_REFUND(3, 7, new DigitalGoodsAttachment.RefundAttachment()),
+        ACCOUNT_CONTROL_PHASING_ONLY(4, 0, new SetPhasingOnlyAttachment()),
+        CURRENCY_ISSUANCE(5, 0, new CurrencyAttachment.IssuanceAttachment()),
         CURRENCY_RESERVE_INCREASE(5, 1, null),
         CURRENCY_RESERVE_CLAIM(5, 2, null),
         CURRENCY_TRANSFER(5, 3, null),
@@ -200,6 +202,24 @@ public abstract class Attachment {
      */
     abstract protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
                 throws BufferUnderflowException, IllegalArgumentException;
+
+    /**
+     * Get a string
+     *
+     * @param   length                      String length
+     * @param   buffer                      Byte buffer
+     * @return                              String
+     * @throws  BufferUnderflowException    End-of-data reached parsing attachment
+     * @throws  IllegalArgumentException    Invalid attachment
+     */
+    protected String readString(int length, ByteBuffer buffer)
+                throws BufferUnderflowException, IllegalArgumentException {
+        if (length == 0)
+            return "";
+        byte[] stringBytes = new byte[length];
+        buffer.get(stringBytes);
+        return new String(stringBytes, UTF8);
+    }
 
     /**
      * Child block attachment
@@ -369,6 +389,121 @@ public abstract class Attachment {
         public StringBuilder toString(StringBuilder sb) {
             super.toString(sb);
             sb.append("  Period:  ").append(getPeriod()).append("\n");
+            return sb;
+        }
+    }
+
+    /**
+     * Account control phasing only attachment
+     */
+    public static class SetPhasingOnlyAttachment extends Attachment {
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            return new SetPhasingOnlyAttachment(txType, json);
+        }
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            return new SetPhasingOnlyAttachment(txType, buffer);
+        }
+
+        private PhasingParameters phasingParams;
+        private SortedMap<Chain, Long> maxFees;
+        private int minDuration;
+        private int maxDuration;
+
+        private SetPhasingOnlyAttachment() {
+        }
+
+        private SetPhasingOnlyAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            super(txType, json);
+            phasingParams = new PhasingParameters(json.getObject("phasingControlParams"));
+            maxFees = new TreeMap<>();
+            json.getObject("controlMaxFees").getObjectMap().entrySet().forEach(entry -> {
+                int chainId = Integer.valueOf(entry.getKey());
+                Chain chain = Nxt.getChain(chainId);
+                if (chain == null)
+                    throw new IllegalArgumentException("Chain '" + chainId + "' is not defined");
+                maxFees.put(chain, (Long)entry.getValue());
+            });
+            minDuration = json.getInt("controlMinDuration");
+            maxDuration = json.getInt("controlMaxDuration");
+        }
+
+        private SetPhasingOnlyAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super(txType, buffer);
+            phasingParams = new PhasingParameters(buffer);
+            int count = buffer.get();
+            maxFees = new TreeMap<>();
+            for (int i=0; i<count; i++) {
+                int chainId = buffer.getInt();
+                Chain chain = Nxt.getChain(chainId);
+                if (chain == null)
+                    throw new IllegalArgumentException("Chain '" + chainId + "' is not defined");
+                maxFees.put(chain, buffer.getLong());
+            }
+            minDuration = buffer.getShort();
+            maxDuration = buffer.getShort();
+        }
+
+        /**
+         * Get the phasing parameters
+         *
+         * @return                  Phasing parameters
+         */
+        public PhasingParameters getPhasingParams() {
+            return phasingParams;
+        }
+
+        /**
+         * Get the maximum fee for each chain
+         *
+         * @return                  Maximum fees
+         */
+        public SortedMap<Chain, Long> getMaxFees() {
+            return maxFees;
+        }
+
+        /**
+         * Get the minimum duration
+         *
+         * @return                  Minimum duration
+         */
+        public int getMinDuration() {
+            return minDuration;
+        }
+
+        /**
+         * Get the maximum duration
+         *
+         * @return                  Maximum duration
+         */
+        public int getMaxDuration() {
+            return maxDuration;
+        }
+
+        /**
+         * Return a string representation of this attachment
+         *
+         * @param   sb              String builder
+         * @return                  The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            phasingParams.toString(sb);
+            if (!maxFees.isEmpty()) {
+                maxFees.entrySet().forEach(entry ->
+                    sb.append("  ").append(entry.getKey().getName()).append(":  ")
+                        .append(entry.getValue()).append("\n"));
+            }
+            sb.append("  Minimum Duration:  ").append(minDuration).append("\n")
+                    .append("  Maximum Duration:  ").append(maxDuration).append("\n");
             return sb;
         }
     }

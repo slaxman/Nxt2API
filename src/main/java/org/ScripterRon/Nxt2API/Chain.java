@@ -68,4 +68,25 @@ public class Chain {
     public int getDecimals() {
         return decimals;
     }
+
+    /**
+     * Get the hash code
+     *
+     * @return                  Hash code
+     */
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(id);
+    }
+
+    /**
+     * Check if the supplied object is equal to this one
+     *
+     * @param   obj             Object to compare
+     * @return                  TRUE if the objects are equal
+     */
+    @Override
+    public boolean equals(Object obj) {
+        return ((obj instanceof Chain) && id == ((Chain)obj).id);
+    }
 }

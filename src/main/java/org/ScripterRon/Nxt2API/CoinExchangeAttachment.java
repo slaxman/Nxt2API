@@ -35,7 +35,7 @@ public abstract class CoinExchangeAttachment {
 
         @Override
         protected Attachment parseAttachment(TransactionType txType, Response json)
-                throws IllegalArgumentException, NumberFormatException {
+                throws IdentifierException, NumberFormatException {
             return new OrderIssueAttachment(txType, json);
         }
 
@@ -99,7 +99,7 @@ public abstract class CoinExchangeAttachment {
         /**
          * Get the amount
          * <p>
-         * The amount has an implicit decimal point determined by the chain 'decimals' property
+         * The amount has an implied decimal point determined by the chain 'decimals' property
          *
          * @return                      Quantity
          */
@@ -110,7 +110,7 @@ public abstract class CoinExchangeAttachment {
         /**
          * Get the price
          * <p>
-         * The price has an implicit decimal point determined by the chain 'decimals' property
+         * The price has an implied decimal point determined by the chain 'decimals' property
          *
          * @return                      Price
          */

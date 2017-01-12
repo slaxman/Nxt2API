@@ -60,6 +60,12 @@ public class Nxt {
     /** Nxt phasing hash algorithms */
     private static final Map<Integer, String> phasingHashAlgorithms = new HashMap<>();
 
+    /** Nxt minting hash algorithms */
+    private static final Map<Integer, String> mintingHashAlgorithms = new HashMap<>();
+
+    /** Nxt currency types */
+    private static final Map<Integer, String> currencyTypes = new HashMap<>();
+
     /** UTF-8 character set */
     private static final Charset UTF8 = Charset.forName("UTF-8");
 
@@ -150,6 +156,20 @@ public class Nxt {
         phasingHashAlgorithms.clear();
         response.getObject("phasingHashAlgorithms").getObjectMap().entrySet().forEach(entry -> {
             phasingHashAlgorithms.put(((Long)entry.getValue()).intValue(), entry.getKey());
+        });
+        //
+        // Get the minting hash algorithms
+        //
+        mintingHashAlgorithms.clear();
+        response.getObject("mintingHashAlgorithms").getObjectMap().entrySet().forEach(entry -> {
+            mintingHashAlgorithms.put(((Long)entry.getValue()).intValue(), entry.getKey());
+        });
+        //
+        // Get the currency types
+        //
+        currencyTypes.clear();
+        response.getObject("currencyTypes").getObjectMap().entrySet().forEach(entry -> {
+            currencyTypes.put(((Long)entry.getValue()).intValue(), entry.getKey());
         });
     }
 
@@ -254,6 +274,65 @@ public class Nxt {
             }
         }
         return -1;
+    }
+
+    /**
+     * Get the minting algorithm name for the supplied identifier
+     *
+     * @param   id                  Hash algorithm identifier
+     * @return                      Algorithm name or null if the algorithm is not defined
+     */
+    public static String getMintingHashAlgorithm(int id) {
+        return mintingHashAlgorithms.get(id);
+    }
+
+    /**
+     * Get the minting algorithm identifier for the supplied name
+     *
+     * @param   name                Hash algorithm name
+     * @return                      Hash algorithm identifier or -1 if not defined
+     */
+    public static int getMintingHashAlgorithm(String name) {
+        for (Map.Entry<Integer, String> entry : mintingHashAlgorithms.entrySet()) {
+            if (entry.getValue().equals(name)) {
+                return entry.getKey();
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Get the currency type name for the supplied identifier
+     *
+     * @param   id                  Currency type identifier
+     * @return                      Currency type name or null if the type is not defined
+     */
+    public static String getCurrencyType(int id) {
+        return currencyTypes.get(id);
+    }
+
+    /**
+     * Get the currency type identifier for the supplied name
+     *
+     * @param   name                Currency type name
+     * @return                      Currency type identifier or -1 if not defined
+     */
+    public static int getCurrencyType(String name) {
+        for (Map.Entry<Integer, String> entry : currencyTypes.entrySet()) {
+            if (entry.getValue().equals(name)) {
+                return entry.getKey();
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Get all of the currency types
+     *
+     * @return                      Currency types map
+     */
+    public static Map<Integer, String> getCurrencyTypes() {
+        return currencyTypes;
     }
 
     /**
