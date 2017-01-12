@@ -60,25 +60,25 @@ public abstract class Attachment {
         DIGITAL_GOODS_REFUND(3, 7, new DigitalGoodsAttachment.RefundAttachment()),
         ACCOUNT_CONTROL_PHASING_ONLY(4, 0, new SetPhasingOnlyAttachment()),
         CURRENCY_ISSUANCE(5, 0, new CurrencyAttachment.IssuanceAttachment()),
-        CURRENCY_RESERVE_INCREASE(5, 1, null),
-        CURRENCY_RESERVE_CLAIM(5, 2, null),
-        CURRENCY_TRANSFER(5, 3, null),
-        CURRENCY_EXCHANGE_OFFER(5, 4, null),
-        CURRENCY_EXCHANGE_BUY(5, 5, null),
-        CURRENCY_EXCHANGE_SELL(5, 6, null),
+        CURRENCY_RESERVE_INCREASE(5, 1, new CurrencyAttachment.ReserveIncreaseAttachment()),
+        CURRENCY_RESERVE_CLAIM(5, 2, new CurrencyAttachment.ReserveClaimAttachment()),
+        CURRENCY_TRANSFER(5, 3, new CurrencyAttachment.TransferAttachment()),
+        CURRENCY_EXCHANGE_OFFER(5, 4, new CurrencyAttachment.ExchangeOfferAttachment()),
+        CURRENCY_EXCHANGE_BUY(5, 5, new CurrencyAttachment.ExchangeBuyAttachment()),
+        CURRENCY_EXCHANGE_SELL(5, 6, new CurrencyAttachment.ExchangeSellAttachment()),
         CURRENCY_MINTING(5, 7, new CurrencyAttachment.MintingAttachment()),
-        CURRENCY_DELETION(5, 8, null),
-        TAGGED_DATA_UPLOAD(6, 0, null),
-        SHUFFLING_CREATION(7, 0, null),
-        SHUFFLING_REGISTRATION(7, 1, null),
-        SHUFFLING_PROCESSING(7, 2, null),
-        SHUFFLING_RECIPIENTS(7, 3, null),
-        SHUFFLING_VERIFICATION(7, 4, null),
-        SHUFFLING_CANCELLATION(7, 5, null),
-        ALIAS_ASSIGNMENT(8, 0, null),
-        ALIAS_SELL(8, 1, null),
-        ALIAS_BUY(8, 2, null),
-        ALIAS_DELETE(8, 3, null),
+        CURRENCY_DELETION(5, 8, new CurrencyAttachment.DeletionAttachment()),
+        TAGGED_DATA_UPLOAD(6, 0, new TaggedDataUploadAttachment()),
+        SHUFFLING_CREATION(7, 0, new ShufflingAttachment.CreationAttachment()),
+        SHUFFLING_REGISTRATION(7, 1, new ShufflingAttachment.RegistrationAttachment()),
+        SHUFFLING_PROCESSING(7, 2, new ShufflingAttachment.ProcessingAttachment()),
+        SHUFFLING_RECIPIENTS(7, 3, new ShufflingAttachment.RecipientsAttachment()),
+        SHUFFLING_VERIFICATION(7, 4, new ShufflingAttachment.VerificationAttachment()),
+        SHUFFLING_CANCELLATION(7, 5, new ShufflingAttachment.CancellationAttachment()),
+        ALIAS_ASSIGNMENT(8, 0, new AliasAttachment.AssignmentAttachment()),
+        ALIAS_SELL(8, 1, new AliasAttachment.SellAttachment()),
+        ALIAS_BUY(8, 2, new AliasAttachment.BuyAttachment()),
+        ALIAS_DELETE(8, 3, new AliasAttachment.DeleteAttachment()),
         POLL_CREATION(9, 0, null),
         VOTE_CASTING(9, 1, null),
         PHASING_VOTE_CASTING(9, 2, null),
@@ -179,6 +179,27 @@ public abstract class Attachment {
     }
 
     /**
+     * Return a string representation of the attachment
+     *
+     * @param   sb                  String builder
+     * @return                      The supplied string builder
+     */
+    public StringBuilder toString(StringBuilder sb) {
+        sb.append("Attachment:  ").append(getTransactionType().getName()).append("\n");
+        return sb;
+    }
+
+    /**
+     * Return a string representation of the attachment
+     *
+     * @return                      String representation
+     */
+    @Override
+    public String toString() {
+        return toString(new StringBuilder(64)).toString();
+    }
+
+    /**
      * Parse the attachment JSON
      *
      * @param   txType                      Transaction type
@@ -222,7 +243,7 @@ public abstract class Attachment {
     }
 
     /**
-     * Child block attachment
+     * Child Block attachment
      */
     public static class ChildBlockAttachment extends Attachment {
 
@@ -242,10 +263,10 @@ public abstract class Attachment {
         private List<byte[]> fullHashes;
         private byte[] hash;
 
-        private ChildBlockAttachment() {
+        ChildBlockAttachment() {
         }
 
-        private ChildBlockAttachment(TransactionType txType, Response json)
+        ChildBlockAttachment(TransactionType txType, Response json)
                     throws IdentifierException, IllegalArgumentException, NumberFormatException {
             super(txType, json);
             int chainId = json.getInt("chain");
@@ -263,7 +284,7 @@ public abstract class Attachment {
             }
         }
 
-        private ChildBlockAttachment(TransactionType txType, ByteBuffer buffer)
+        ChildBlockAttachment(TransactionType txType, ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
             super(txType, buffer);
             int flags = buffer.get();
@@ -337,7 +358,7 @@ public abstract class Attachment {
     }
 
     /**
-     * Effective balance leasing attachment
+     * Effective Balance Leasing attachment
      */
     public static class EffectiveBalanceLeasingAttachment extends Attachment {
 
@@ -355,16 +376,16 @@ public abstract class Attachment {
 
         private int period;
 
-        private EffectiveBalanceLeasingAttachment() {
+        EffectiveBalanceLeasingAttachment() {
         }
 
-        private EffectiveBalanceLeasingAttachment(TransactionType txType, Response json)
+        EffectiveBalanceLeasingAttachment(TransactionType txType, Response json)
                     throws IdentifierException, IllegalArgumentException, NumberFormatException {
             super(txType, json);
             period = json.getInt("period");
         }
 
-        private EffectiveBalanceLeasingAttachment(TransactionType txType, ByteBuffer buffer)
+        EffectiveBalanceLeasingAttachment(TransactionType txType, ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
             super(txType, buffer);
             period = buffer.getShort();
@@ -394,7 +415,7 @@ public abstract class Attachment {
     }
 
     /**
-     * Account control phasing only attachment
+     * Account Control Set Phasing Only attachment
      */
     public static class SetPhasingOnlyAttachment extends Attachment {
 
@@ -415,10 +436,10 @@ public abstract class Attachment {
         private int minDuration;
         private int maxDuration;
 
-        private SetPhasingOnlyAttachment() {
+        SetPhasingOnlyAttachment() {
         }
 
-        private SetPhasingOnlyAttachment(TransactionType txType, Response json)
+        SetPhasingOnlyAttachment(TransactionType txType, Response json)
                     throws IdentifierException, IllegalArgumentException, NumberFormatException {
             super(txType, json);
             phasingParams = new PhasingParameters(json.getObject("phasingControlParams"));
@@ -434,7 +455,7 @@ public abstract class Attachment {
             maxDuration = json.getInt("controlMaxDuration");
         }
 
-        private SetPhasingOnlyAttachment(TransactionType txType, ByteBuffer buffer)
+        SetPhasingOnlyAttachment(TransactionType txType, ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
             super(txType, buffer);
             phasingParams = new PhasingParameters(buffer);
@@ -509,6 +530,193 @@ public abstract class Attachment {
     }
 
     /**
+     * Tagged Data Upload attachment
+     */
+    public static class TaggedDataUploadAttachment extends Attachment {
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            return new TaggedDataUploadAttachment(txType, json);
+        }
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            return new TaggedDataUploadAttachment(txType, buffer);
+        }
+
+        private boolean isText;
+        private String name;
+        private String description;
+        private String tags;
+        private String type;
+        private String channel;
+        private String filename;
+        private byte[] data;
+        private byte[] hash;
+
+        TaggedDataUploadAttachment() {
+        }
+
+        TaggedDataUploadAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
+            super(txType, json);
+            String dataString = json.getString("data");
+            if (dataString.length() > 0) {
+                isText = json.getBoolean("isText");
+                name = json.getString("name");
+                description = json.getString("description");
+                tags = json.getString("tags");
+                type = json.getString("type");
+                channel = json.getString("channel");
+                filename = json.getString("filename");
+                data = (isText ? dataString.getBytes(UTF8) : Utils.parseHexString(dataString));
+            } else {
+                hash = json.getHexString("hash");
+            }
+        }
+
+        TaggedDataUploadAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super(txType, buffer);
+            int flags = buffer.get();
+            if ((flags & 1) != 0) {
+                isText = ((flags & 2) != 0);
+                name = readString(buffer.getShort(), buffer);
+                description = readString(buffer.getShort(), buffer);
+                tags = readString(buffer.getShort(), buffer);
+                type = readString(buffer.getShort(), buffer);
+                channel = readString(buffer.getShort(), buffer);
+                filename = readString(buffer.getShort(), buffer);
+                int length = buffer.getInt();
+                data = new byte[length];
+                if (length > 0)
+                    buffer.get(data);
+            } else {
+                hash = new byte[32];
+                buffer.get(hash);
+            }
+        }
+
+        /**
+         * Get the name
+         *
+         * @return              Name (null if the data has been pruned)
+         */
+        public String getName() {
+            return name;
+        }
+
+        /**
+         * Get the description
+         *
+         * @return              Description (null if the data has been pruned)
+         */
+        public String getDescription() {
+            return description;
+        }
+
+        /**
+         * Get the tags
+         *
+         * @return              Tags (null if the data has been pruned)
+         */
+        public String getTags() {
+            return tags;
+        }
+
+        /**
+         * Get the data type
+         *
+         * @return              Type (null if the data has been pruned)
+         */
+        public String getType() {
+            return type;
+        }
+
+        /**
+         * Get the channel
+         *
+         * @return              Channel (null if the data has been pruned)
+         */
+        public String getChannel() {
+            return channel;
+        }
+
+        /**
+         * Get the filename
+         *
+         * @return              Filename (null if the data has been pruned)
+         */
+        public String getFilename() {
+            return filename;
+        }
+
+        /**
+         * Get the data
+         * <p>
+         * Text data is returned as a text string, otherwise the data is returned as a hexadecimal string.
+         *
+         * @return              Data (null if the data has been pruned)
+         */
+        public String getData() {
+            return (data != null ?
+                    (isText ? new String(data, UTF8) : Utils.toHexString(data)) : null);
+        }
+
+        /**
+         * Get the data bytes
+         *
+         * @return              Data (null if the data has been pruned)
+         */
+        public byte[] getDataBytes() {
+            return data;
+        }
+
+        /**
+         * Get the data hash
+         *
+         * @return              Data hash
+         */
+        public byte[] getHash() {
+            if (hash == null) {
+                byte[] flagByte = new byte[1];
+                flagByte[0] = (isText ? (byte)1 : (byte)0);
+                hash = Crypto.singleDigest(
+                        name.getBytes(UTF8),
+                        description.getBytes(UTF8),
+                        tags.getBytes(UTF8),
+                        type.getBytes(UTF8),
+                        channel.getBytes(UTF8),
+                        flagByte,
+                        filename.getBytes(UTF8),
+                        data);
+            }
+            return hash;
+        }
+
+        /**
+         * Return a string representation of this attachment
+         *
+         * @param   sb              String builder
+         * @return                  The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Name:  ").append(name).append("\n")
+                    .append("  Description:  ").append(description).append("\n")
+                    .append("  Tags:  ").append(tags).append("\n")
+                    .append("  Type:  ").append(type).append("\n")
+                    .append("  Channel:  ").append(channel).append("\n")
+                    .append("  IsText:  ").append(isText).append("\n")
+                    .append("  Filename:  ").append(filename).append("\n");
+            return sb;
+        }
+    }
+
+    /**
      * Payment attachment
      *
      * Payment information is part of the base transaction, so the
@@ -525,10 +733,10 @@ public abstract class Attachment {
             return new PaymentAttachment(txType);
         }
 
-        private PaymentAttachment() {
+        PaymentAttachment() {
         }
 
-        private PaymentAttachment(TransactionType txType) {
+        PaymentAttachment(TransactionType txType) {
             super(txType);
         }
     }
@@ -550,32 +758,11 @@ public abstract class Attachment {
             return new MessagingAttachment(txType);
         }
 
-        private MessagingAttachment() {
+        MessagingAttachment() {
         }
 
-        private MessagingAttachment(TransactionType txType) {
+        MessagingAttachment(TransactionType txType) {
             super(txType);
         }
-    }
-
-    /**
-     * Return a string representation of the attachment
-     *
-     * @param   sb                  String builder
-     * @return                      The supplied string builder
-     */
-    public StringBuilder toString(StringBuilder sb) {
-        sb.append("Attachment:  ").append(getTransactionType().getName()).append("\n");
-        return sb;
-    }
-
-    /**
-     * Return a string representation of the attachment
-     *
-     * @return                      String representation
-     */
-    @Override
-    public String toString() {
-        return toString(new StringBuilder(64)).toString();
     }
 }

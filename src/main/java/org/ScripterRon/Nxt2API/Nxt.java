@@ -66,6 +66,9 @@ public class Nxt {
     /** Nxt currency types */
     private static final Map<Integer, String> currencyTypes = new HashMap<>();
 
+    /** Nxt holding types */
+    private static final Map<Integer, String> holdingTypes = new HashMap<>();
+
     /** UTF-8 character set */
     private static final Charset UTF8 = Charset.forName("UTF-8");
 
@@ -170,6 +173,13 @@ public class Nxt {
         currencyTypes.clear();
         response.getObject("currencyTypes").getObjectMap().entrySet().forEach(entry -> {
             currencyTypes.put(((Long)entry.getValue()).intValue(), entry.getKey());
+        });
+        //
+        // Get the holding types
+        //
+        holdingTypes.clear();
+        response.getObject("holdingTypes").getObjectMap().entrySet().forEach(entry -> {
+            holdingTypes.put(((Long)entry.getValue()).intValue(), entry.getKey());
         });
     }
 
@@ -319,6 +329,31 @@ public class Nxt {
      */
     public static int getCurrencyType(String name) {
         for (Map.Entry<Integer, String> entry : currencyTypes.entrySet()) {
+            if (entry.getValue().equals(name)) {
+                return entry.getKey();
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Get the holding type name for the supplied identifier
+     *
+     * @param   id                  Holding type identifier
+     * @return                      Holding type name or null if the type is not defined
+     */
+    public static String getHoldingType(int id) {
+        return holdingTypes.get(id);
+    }
+
+    /**
+     * Get the holding type identifier for the supplied name
+     *
+     * @param   name                Holding type name
+     * @return                      Holding type identifier or -1 if not defined
+     */
+    public static int getHoldingType(String name) {
+        for (Map.Entry<Integer, String> entry : holdingTypes.entrySet()) {
             if (entry.getValue().equals(name)) {
                 return entry.getKey();
             }

@@ -391,8 +391,7 @@ public abstract class Appendix {
             super.toString(sb);
             sb.append("  Is Text:  ").append(isText).append("\n")
                     .append("  Is Compressed:  ").append(isCompressed).append("\n")
-                    .append("  Nonce:  ").append(Utils.toHexString(nonce)).append("\n")
-                    .append("  Encrypted Data:  ").append(Utils.toHexString(encryptedData)).append("\n");
+                    .append("  Nonce:  ").append(Utils.toHexString(nonce)).append("\n");
             return sb;
         }
     }
@@ -520,8 +519,7 @@ public abstract class Appendix {
             super.toString(sb);
             sb.append("  Is Text:  ").append(isText).append("\n")
                     .append("  Is Compressed:  ").append(isCompressed).append("\n")
-                    .append("  Nonce:  ").append(Utils.toHexString(nonce)).append("\n")
-                    .append("  Encrypted Data:  ").append(Utils.toHexString(encryptedData)).append("\n");
+                    .append("  Nonce:  ").append(Utils.toHexString(nonce)).append("\n");
             return sb;
         }
     }
@@ -797,8 +795,7 @@ public abstract class Appendix {
             if (encryptedData != null)
                 sb.append("  Is Text:  ").append(isText).append("\n")
                         .append("  Is Compressed:  ").append(isCompressed).append("\n")
-                        .append("  Nonce:  ").append(Utils.toHexString(nonce)).append("\n")
-                        .append("  Encrypted Data:  ").append(Utils.toHexString(encryptedData)).append("\n");
+                        .append("  Nonce:  ").append(Utils.toHexString(nonce)).append("\n");
             sb.append("  Message Hash:  ").append(Utils.toHexString(getMessageHash())).append("\n");
             return sb;
         }

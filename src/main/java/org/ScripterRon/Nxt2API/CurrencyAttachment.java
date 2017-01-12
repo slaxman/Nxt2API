@@ -176,7 +176,9 @@ public abstract class CurrencyAttachment {
         }
 
         /**
-         * Return the minimum reserve per unit
+         * Return the minimum reserve amount per unit
+         * <p>
+         * The minimum reserve amount has an implied decimal point determined by the chain 'decimals' property
          *
          * @return                     Minimum reserve
          */
@@ -243,12 +245,610 @@ public abstract class CurrencyAttachment {
                     .append("  Reserve Supply:  ").append(String.format("%,d", reserveSupply)).append("\n")
                     .append("  Maximum Supply:  ").append(String.format("%,d", maxSupply)).append("\n")
                     .append("  Issuance Height:  ").append(issuanceHeight).append("\n")
-                    .append("  Minimum Reserve:  ").append(minReserve).append("\n")
+                    .append("  Minimum Reserve:  ").append(String.format("%,d", minReserve)).append("\n")
                     .append("  Minimum Difficulty:  ").append(minDifficulty).append("\n")
                     .append("  Maximum Difficulty:  ").append(maxDifficulty).append("\n")
                     .append("  Rule Set:  ").append(ruleset).append("\n")
                     .append("  Minting Algorithm:  ").append(Nxt.getMintingHashAlgorithm(algorithm)).append("\n")
                     .append("  Decimals:  ").append(decimals).append("\n");
+            return sb;
+        }
+    }
+
+    /**
+     * Currency Reserve Increase attachment
+     */
+    public static class ReserveIncreaseAttachment extends Attachment {
+
+        private long currencyId;
+        private long increase;
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            return new ReserveIncreaseAttachment(txType, json);
+        }
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            return new ReserveIncreaseAttachment(txType, buffer);
+        }
+
+        ReserveIncreaseAttachment() {
+        }
+
+        ReserveIncreaseAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            super(txType, json);
+            currencyId = json.getId("currency");
+            increase = json.getLong("amountPerUnitNQT");
+        }
+
+        ReserveIncreaseAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super(txType, buffer);
+            currencyId = buffer.getLong();
+            increase = buffer.getLong();
+        }
+
+        /**
+         * Return the currency identifier
+         *
+         * @return                      Currency identifier
+         */
+        public long getCurrencyId() {
+            return currencyId;
+        }
+
+        /**
+         * Return the reserve increase
+         * <p>
+         * The reserve increase has an implied decimal point determined by the chain 'decimals' property
+         *
+         * @return                      Reserve increase
+         */
+        public long getReserveIncrease() {
+            return increase;
+        }
+
+        /**
+         * Return a string representation of the attachment
+         *
+         * @param   sb                  String builder
+         * @return                      The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Currency:  ").append(Utils.idToString(currencyId)).append("\n")
+                    .append("  Reserve Increase:  ").append(String.format("%,d", increase)).append("\n");
+            return sb;
+        }
+    }
+
+    /**
+     * Currency Reserve Claim attachment
+     */
+    public static class ReserveClaimAttachment extends Attachment {
+
+        private long currencyId;
+        private long units;
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            return new ReserveClaimAttachment(txType, json);
+        }
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            return new ReserveClaimAttachment(txType, buffer);
+        }
+
+        ReserveClaimAttachment() {
+        }
+
+        ReserveClaimAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            super(txType, json);
+            currencyId = json.getId("currency");
+            units = json.getLong("units");
+        }
+
+        ReserveClaimAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super(txType, buffer);
+            currencyId = buffer.getLong();
+            units = buffer.getLong();
+        }
+
+        /**
+         * Return the currency identifier
+         *
+         * @return                      Currency identifier
+         */
+        public long getCurrencyId() {
+            return currencyId;
+        }
+
+        /**
+         * Return the reserve units claimed
+         * <p>
+         * The reserve units has an implied decimal point determined by the currency 'decimals' property
+         *
+         * @return                      Reserve units
+         */
+        public long getReserveUnits() {
+            return units;
+        }
+
+        /**
+         * Return a string representation of the attachment
+         *
+         * @param   sb                  String builder
+         * @return                      The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Currency:  ").append(Utils.idToString(currencyId)).append("\n")
+                    .append("  Reserve Units Claimed:  ").append(String.format("%,d", units)).append("\n");
+            return sb;
+        }
+    }
+
+    /**
+     * Currency Transfer attachment
+     */
+    public static class TransferAttachment extends Attachment {
+
+        private long currencyId;
+        private long units;
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            return new TransferAttachment(txType, json);
+        }
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            return new TransferAttachment(txType, buffer);
+        }
+
+        TransferAttachment() {
+        }
+
+        TransferAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            super(txType, json);
+            currencyId = json.getId("currency");
+            units = json.getLong("units");
+        }
+
+        TransferAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super(txType, buffer);
+            currencyId = buffer.getLong();
+            units = buffer.getLong();
+        }
+
+        /**
+         * Return the currency identifier
+         *
+         * @return                      Currency identifier
+         */
+        public long getCurrencyId() {
+            return currencyId;
+        }
+
+        /**
+         * Return the units
+         * <p>
+         * The units has an implied decimal point determined by the currency 'decimals' property
+         *
+         * @return                      Units
+         */
+        public long getUnits() {
+            return units;
+        }
+
+        /**
+         * Return a string representation of the attachment
+         *
+         * @param   sb                  String builder
+         * @return                      The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Currency:  ").append(Utils.idToString(currencyId)).append("\n")
+                    .append("  Units:  ").append(String.format("%,d", units)).append("\n");
+            return sb;
+        }
+    }
+
+    /**
+     * Exchange Offer attachment
+     */
+    public static class ExchangeOfferAttachment extends Attachment {
+
+        private long currencyId;
+        private long buyRate;
+        private long sellRate;
+        private long totalBuyLimit;
+        private long totalSellLimit;
+        private long initialBuySupply;
+        private long initialSellSupply;
+        private int expirationHeight;
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            return new ExchangeOfferAttachment(txType, json);
+        }
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            return new ExchangeOfferAttachment(txType, buffer);
+        }
+
+        ExchangeOfferAttachment() {
+        }
+
+        ExchangeOfferAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            super(txType, json);
+            currencyId = json.getId("currency");
+            buyRate = json.getLong("buyRateNQT");
+            sellRate = json.getLong("sellRateNQT");
+            totalBuyLimit = json.getLong("totalBuyLimit");
+            totalSellLimit = json.getLong("totalSellLimit");
+            initialBuySupply = json.getLong("initialBuySupply");
+            initialSellSupply = json.getLong("initialSellSupply");
+            expirationHeight = json.getInt("expirationHeight");
+        }
+
+        ExchangeOfferAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super(txType, buffer);
+            currencyId = buffer.getLong();
+            buyRate = buffer.getLong();
+            sellRate = buffer.getLong();
+            totalBuyLimit = buffer.getLong();
+            totalSellLimit = buffer.getLong();
+            initialBuySupply = buffer.getLong();
+            initialSellSupply = buffer.getLong();
+            expirationHeight = buffer.getInt();
+        }
+
+        /**
+         * Return the currency identifier
+         *
+         * @return                      Currency identifier
+         */
+        public long getCurrencyId() {
+            return currencyId;
+        }
+
+        /**
+         * Return the buy rate
+         * <p>
+         * The buy rate has an implied decimal point determined by the currency 'decimals' property
+         *
+         * @return                      Buy rate
+         */
+        public long getBuyRate() {
+            return buyRate;
+        }
+
+        /**
+         * Return the sell rate
+         * <p>
+         * The sell rate has an implied decimal point determined by the currency 'decimals' property
+         *
+         * @return                      Sell rate
+         */
+        public long getSellRate() {
+            return sellRate;
+        }
+
+        /**
+         * Return the total buy limit
+         * <p>
+         * The buy limit has an implied decimal point determined by the currency 'decimals' property
+         *
+         * @return                      Buy units
+         */
+        public long getTotalBuyLimit() {
+            return totalBuyLimit;
+        }
+
+        /**
+         * Return the total sell limit
+         * <p>
+         * The sell limit has an implied decimal point determined by the currency 'decimals' property
+         *
+         * @return                      Sell Units
+         */
+        public long getTotalSellLimit() {
+            return totalSellLimit;
+        }
+
+        /**
+         * Return the initial buy supply
+         * <p>
+         * The buy supply has an implied decimal point determined by the currency 'decimals' property
+         *
+         * @return                      Buy supply
+         */
+        public long getInitialBuySupply() {
+            return initialBuySupply;
+        }
+
+        /**
+         * Return the initial sell supply
+         * <p>
+         * The sell supply has an implied decimal point determined by the currency 'decimals' property
+         *
+         * @return                      Sell supply
+         */
+        public long getInitialSellSupply() {
+            return initialSellSupply;
+        }
+
+        /**
+         * Return a string representation of the attachment
+         *
+         * @param   sb                  String builder
+         * @return                      The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Currency:  ").append(Utils.idToString(currencyId)).append("\n")
+                    .append("  Buy Rate:  ").append(String.format("%,d", buyRate)).append("\n")
+                    .append("  Sell Rate:  ").append(String.format("%,d", sellRate)).append("\n")
+                    .append("  Total Buy Limit:  ").append(String.format("%,d", totalBuyLimit)).append("\n")
+                    .append("  Total Sell Limit:  ").append(String.format("%,d", totalSellLimit)).append("\n")
+                    .append("  Initial Buy Supply:  ").append(String.format("%,d", initialBuySupply)).append("\n")
+                    .append("  Initial Sell Supply:  ").append(String.format("%,d", initialSellSupply)).append("\n")
+                    .append("  Expiration Height:  ").append(expirationHeight).append("\n");
+            return sb;
+        }
+    }
+
+    /**
+     * Exchange Buy attachment
+     */
+    public static class ExchangeBuyAttachment extends Attachment {
+
+        private long currencyId;
+        private long rate;
+        private long units;
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            return new ExchangeBuyAttachment(txType, json);
+        }
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            return new ExchangeBuyAttachment(txType, buffer);
+        }
+
+        ExchangeBuyAttachment() {
+        }
+
+        ExchangeBuyAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            super(txType, json);
+            currencyId = json.getId("currency");
+            rate = json.getLong("rateNQT");
+            units = json.getLong("units");
+        }
+
+        ExchangeBuyAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super(txType, buffer);
+            currencyId = buffer.getLong();
+            rate = buffer.getLong();
+            units = buffer.getLong();
+        }
+
+        /**
+         * Return the currency identifier
+         *
+         * @return                      Currency identifier
+         */
+        public long getCurrencyId() {
+            return currencyId;
+        }
+
+        /**
+         * Return the exchange rate
+         * <p>
+         * The exchange rate has an implied decimal point determined by the currency 'decimals' property
+         *
+         * @return                      Exchange rate
+         */
+        public long getRate() {
+            return rate;
+        }
+
+        /**
+         * Return the units
+         * <p>
+         * The units has an implied decimal point determined by the currency 'decimals' property
+         *
+         * @return                      Units
+         */
+        public long getUnits() {
+            return units;
+        }
+
+        /**
+         * Return a string representation of the attachment
+         *
+         * @param   sb                  String builder
+         * @return                      The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Currency:  ").append(Utils.idToString(currencyId)).append("\n")
+                    .append("  Rate:  ").append(String.format("%,d", rate)).append("\n")
+                    .append("  Units:  ").append(String.format("%,d", units)).append("\n");
+            return sb;
+        }
+    }
+
+    /**
+     * Exchange Sell attachment
+     */
+    public static class ExchangeSellAttachment extends Attachment {
+
+        private long currencyId;
+        private long rate;
+        private long units;
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            return new ExchangeSellAttachment(txType, json);
+        }
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            return new ExchangeSellAttachment(txType, buffer);
+        }
+
+        ExchangeSellAttachment() {
+        }
+
+        ExchangeSellAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            super(txType, json);
+            currencyId = json.getId("currency");
+            rate = json.getLong("rateNQT");
+            units = json.getLong("units");
+        }
+
+        ExchangeSellAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super(txType, buffer);
+            currencyId = buffer.getLong();
+            rate = buffer.getLong();
+            units = buffer.getLong();
+        }
+
+        /**
+         * Return the currency identifier
+         *
+         * @return                      Currency identifier
+         */
+        public long getCurrencyId() {
+            return currencyId;
+        }
+
+        /**
+         * Return the exchange rate
+         * <p>
+         * The exchange rate has an implied decimal point determined by the currency 'decimals' property
+         *
+         * @return                      Exchange rate
+         */
+        public long getRate() {
+            return rate;
+        }
+
+        /**
+         * Return the units
+         * <p>
+         * The units has an implied decimal point determined by the currency 'decimals' property
+         *
+         * @return                      Units
+         */
+        public long getUnits() {
+            return units;
+        }
+
+        /**
+         * Return a string representation of the attachment
+         *
+         * @param   sb                  String builder
+         * @return                      The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Currency:  ").append(Utils.idToString(currencyId)).append("\n")
+                    .append("  Rate:  ").append(String.format("%,d", rate)).append("\n")
+                    .append("  Units:  ").append(String.format("%,d", units)).append("\n");
+            return sb;
+        }
+    }
+
+    /**
+     * Currency Deletion attachment
+     */
+    public static class DeletionAttachment extends Attachment {
+
+        private long currencyId;
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            return new DeletionAttachment(txType, json);
+        }
+
+        @Override
+        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            return new DeletionAttachment(txType, buffer);
+        }
+
+        DeletionAttachment() {
+        }
+
+        DeletionAttachment(TransactionType txType, Response json)
+                    throws IdentifierException, NumberFormatException {
+            super(txType, json);
+            currencyId = json.getId("currency");
+        }
+
+        DeletionAttachment(TransactionType txType, ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+            super(txType, buffer);
+            currencyId = buffer.getLong();
+        }
+
+        /**
+         * Return the currency identifier
+         *
+         * @return                      Currency identifier
+         */
+        public long getCurrencyId() {
+            return currencyId;
+        }
+
+        /**
+         * Return a string representation of the attachment
+         *
+         * @param   sb                  String builder
+         * @return                      The supplied string builder
+         */
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            super.toString(sb);
+            sb.append("  Currency:  ").append(Utils.idToString(currencyId)).append("\n");
             return sb;
         }
     }
@@ -278,13 +878,13 @@ public abstract class CurrencyAttachment {
         MintingAttachment() {
         }
 
-        MintingAttachment(TransactionType txType, Response response)
+        MintingAttachment(TransactionType txType, Response json)
                     throws IdentifierException, NumberFormatException {
-            super(txType, response);
-            nonce = response.getLong("nonce");
-            currencyId = response.getId("currency");
-            units = response.getLong("units");
-            counter = response.getLong("counter");
+            super(txType, json);
+            nonce = json.getLong("nonce");
+            currencyId = json.getId("currency");
+            units = json.getLong("units");
+            counter = json.getLong("counter");
         }
 
         MintingAttachment(TransactionType txType, ByteBuffer buffer)
@@ -344,9 +944,9 @@ public abstract class CurrencyAttachment {
         public StringBuilder toString(StringBuilder sb) {
             super.toString(sb);
             sb.append("  Currency:  ").append(Utils.idToString(currencyId)).append("\n")
-                    .append("  Units:  ").append(units).append("\n")
+                    .append("  Units:  ").append(String.format("%,d", units)).append("\n")
                     .append("  Nonce:  ").append(nonce).append("\n")
-                    .append("  Counter:  ").append(counter).append("\n");
+                    .append("  Counter:  ").append(String.format("%,d", counter)).append("\n");
             return sb;
         }
     }
