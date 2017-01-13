@@ -132,19 +132,27 @@ public class PhasingParameters {
     * @return                  The supplied string builder
     */
     public StringBuilder toString(StringBuilder sb) {
-        sb.append("  Voting Model:  ").append(Nxt.getVotingModel(getVotingModel())).append("\n")
-                .append("  Quorum:  ").append(getQuorum()).append("\n");
-        if (getMinBalance() != 0)
-            sb.append("  Minimum Balance:  ").append(getMinBalance()).append("\n")
-                    .append("  Minimum Balance Model:  ")
-                    .append(Nxt.getVotingModel(getMinBalanceModel()))
-                    .append("\n");
+        sb.append("  Voting Model:  ").append(Nxt.getVotingModel(votingModel)).append("\n")
+                .append("  Quorum:  ").append(quorum).append("\n");
+        if (minBalance != 0) {
+            sb.append("  Minimum Balance Model:  ").append(Nxt.getVotingModel(minBalanceModel)).append("\n");
+            if (minBalanceModel == Nxt.getVotingModel("COIN")) {
+                Chain chain = Nxt.getChain((int)holdingId);
+                if (chain != null) {
+                    sb.append("  Chain:  ").append(chain.getName()).append("\n")
+                            .append("  Minimum Balance:  ")
+                            .append(Utils.nqtToString(minBalance, chain.getDecimals()))
+                            .append("\n");
+                }
+            } else if (holdingId != 0) {
+                sb.append("  Holding:  ").append(Utils.idToString(holdingId)).append("\n")
+                        .append("  Minimum Balance:  ").append(String.format("%,d", minBalance)).append("\n");
+            }
+        }
         if (!getWhitelistAccounts().isEmpty()) {
             getWhitelistAccounts().forEach(account -> sb.append("  Whitelist:  ")
                     .append(Utils.getAccountRsId(account)).append("\n"));
         }
-        if (getHoldingId() != 0)
-            sb.append("  Holding ID:  ").append(Utils.idToString(getHoldingId())).append("\n");
         return sb;
     }
 

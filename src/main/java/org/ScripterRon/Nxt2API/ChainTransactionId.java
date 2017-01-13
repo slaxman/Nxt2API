@@ -15,6 +15,9 @@
  */
 package org.ScripterRon.Nxt2API;
 
+import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
+
 /**
  * A ChainTransactionId contains the chain and the
  * transaction full hash for a referenced transaction
@@ -39,6 +42,40 @@ public class ChainTransactionId {
         if (chain == null)
             throw new IllegalArgumentException("Chain '" + chainId + "' is not defined");
         this.fullHash = fullHash;
+    }
+
+    /**
+     * Create a new transaction reference
+     *
+     * @param   json                        JSON data
+     * @throws  IdentifierException         Invalid Nxt object identifier
+     * @throws  IllegalArgumentException    Response is not valid
+     * @throws  NumberFormatException       Invalid numeric value
+     */
+    public ChainTransactionId(Response json)
+                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
+        int chainId = json.getInt("chain");
+        chain = Nxt.getChain(chainId);
+        if (chain == null)
+            throw new IllegalArgumentException("Chain '" + chainId + "' is not defined");
+        fullHash = json.getHexString("transactionFullHash");
+    }
+
+    /**
+     * Create a new transaction reference
+     *
+     * @param   buffer                      Buffer
+     * @throws  BufferUnderflowException    End-of-data reached parsing attachment
+     * @throws  IllegalArgumentException    Invalid attachment
+     */
+    public ChainTransactionId(ByteBuffer buffer)
+                    throws BufferUnderflowException, IllegalArgumentException {
+        int chainId = buffer.getShort();
+        chain = Nxt.getChain(chainId);
+        if (chain == null)
+            throw new IllegalArgumentException("Chain '" + chainId + "' is not defined");
+        fullHash = new byte[32];
+        buffer.get(fullHash);
     }
 
     /**
