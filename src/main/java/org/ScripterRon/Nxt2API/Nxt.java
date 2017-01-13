@@ -471,7 +471,7 @@ public class Nxt {
                     long counter, long fee, byte[] publicKey) throws IOException {
         return issueRequest("currencyMint",
                 String.format("currency=%s&chain=%s&nonce=%d&units=%d&counter=%d&"
-                                + "feeNQT=%s&publicKey=%s&deadline=30&broadcast=false",
+                                + "feeNQT=%s&publicKey=%s&deadline=90&broadcast=false",
                         Utils.idToString(currencyId), chain.getName(),
                         nonce, units, counter, Long.toUnsignedString(fee),
                         Utils.toHexString(publicKey)),
@@ -556,7 +556,7 @@ public class Nxt {
                     long fee, long rate, byte[] publicKey) throws IOException {
         return issueRequest("exchangeCoins",
                 String.format("chain=%s&exchange=%s&amountNQT=%s&priceNQT=%s&feeNQT=%s&"
-                            + "feeRateNQTPerFXT=%s&publicKey=%s&deadline=30&broadcast=false",
+                            + "feeRateNQTPerFXT=%s&publicKey=%s&deadline=90&broadcast=false",
                         chain.getName(), exchangeChain.getName(),
                         Long.toUnsignedString(amount), Long.toUnsignedString(price),
                         Long.toUnsignedString(fee), Long.toUnsignedString(rate),
@@ -861,7 +861,7 @@ public class Nxt {
             return issueRequest("sendMoney",
                 String.format("recipient=%s&chain=%s&amountNQT=%s&feeNQT=%s&feeRateNQTPerFXT=%s&"
                                 + "publicKey=%s&message=%s&messageIsText=true&messageIsPrunable=true&"
-                                + "deadline=30&broadcast=false",
+                                + "deadline=90&broadcast=false",
                         Utils.idToString(recipientId), chain.getName(),
                                 Long.toUnsignedString(amount), Long.toUnsignedString(fee),
                                 Long.toUnsignedString(exchangeRate), Utils.toHexString(publicKey),
@@ -870,7 +870,7 @@ public class Nxt {
         } else {
             return issueRequest("sendMoney",
                 String.format("recipient=%s&chain=%s&amountNQT=%s&feeNQT=%s&feeRateNQTPerFXT=%s&"
-                                + "publicKey=%s&deadline=30&broadcast=false",
+                                + "publicKey=%s&deadline=90&broadcast=false",
                         Utils.idToString(recipientId), chain.getName(),
                                 Long.toUnsignedString(amount), Long.toUnsignedString(fee),
                                 Long.toUnsignedString(exchangeRate), Utils.toHexString(publicKey)),

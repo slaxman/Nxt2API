@@ -58,7 +58,7 @@ public abstract class Attachment {
         DIGITAL_GOODS_DELIVERY(3, 5, new DigitalGoodsAttachment.DeliveryAttachment()),
         DIGITAL_GOODS_FEEDBACK(3, 6, new DigitalGoodsAttachment.FeedbackAttachment()),
         DIGITAL_GOODS_REFUND(3, 7, new DigitalGoodsAttachment.RefundAttachment()),
-        ACCOUNT_CONTROL_PHASING_ONLY(4, 0, new SetPhasingOnlyAttachment()),
+        ACCOUNT_CONTROL_PHASING_ONLY(4, 0, new AccountAttachment.SetPhasingOnlyAttachment()),
         CURRENCY_ISSUANCE(5, 0, new CurrencyAttachment.IssuanceAttachment()),
         CURRENCY_RESERVE_INCREASE(5, 1, new CurrencyAttachment.ReserveIncreaseAttachment()),
         CURRENCY_RESERVE_CLAIM(5, 2, new CurrencyAttachment.ReserveClaimAttachment()),
@@ -82,9 +82,9 @@ public abstract class Attachment {
         POLL_CREATION(9, 0, new PollAttachment.CreationAttachment()),
         VOTE_CASTING(9, 1, new PollAttachment.VoteCastingAttachment()),
         PHASING_VOTE_CASTING(9, 2, new PollAttachment.PhasingVoteCastingAttachment()),
-        ACCOUNT_INFO(10, 0, null),
-        ACCOUNT_PROPERTY_SET(10, 1, null),
-        ACCOUNT_PROPERTY_DELETE(10, 2, null),
+        ACCOUNT_INFO(10, 0, new AccountAttachment.AccountInfoAttachment()),
+        ACCOUNT_PROPERTY_SET(10, 1, new AccountAttachment.PropertySetAttachment()),
+        ACCOUNT_PROPERTY_DELETE(10, 2, new AccountAttachment.PropertyDeleteAttachment()),
         EXCHANGE_ORDER_ISSUE(11, 0, new CoinExchangeAttachment.OrderIssueAttachment()),
         EXCHANGE_ORDER_CANCEL(11, 1, new CoinExchangeAttachment.OrderCancelAttachment());
 
@@ -410,121 +410,6 @@ public abstract class Attachment {
         public StringBuilder toString(StringBuilder sb) {
             super.toString(sb);
             sb.append("  Period:  ").append(getPeriod()).append("\n");
-            return sb;
-        }
-    }
-
-    /**
-     * Account Control Set Phasing Only attachment
-     */
-    public static class SetPhasingOnlyAttachment extends Attachment {
-
-        @Override
-        protected Attachment parseAttachment(TransactionType txType, Response json)
-                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
-            return new SetPhasingOnlyAttachment(txType, json);
-        }
-
-        @Override
-        protected Attachment parseAttachment(TransactionType txType, ByteBuffer buffer)
-                    throws BufferUnderflowException, IllegalArgumentException {
-            return new SetPhasingOnlyAttachment(txType, buffer);
-        }
-
-        private PhasingParameters phasingParams;
-        private SortedMap<Chain, Long> maxFees;
-        private int minDuration;
-        private int maxDuration;
-
-        SetPhasingOnlyAttachment() {
-        }
-
-        SetPhasingOnlyAttachment(TransactionType txType, Response json)
-                    throws IdentifierException, IllegalArgumentException, NumberFormatException {
-            super(txType, json);
-            phasingParams = new PhasingParameters(json.getObject("phasingControlParams"));
-            maxFees = new TreeMap<>();
-            json.getObject("controlMaxFees").getObjectMap().entrySet().forEach(entry -> {
-                int chainId = Integer.valueOf(entry.getKey());
-                Chain chain = Nxt.getChain(chainId);
-                if (chain == null)
-                    throw new IllegalArgumentException("Chain '" + chainId + "' is not defined");
-                maxFees.put(chain, (Long)entry.getValue());
-            });
-            minDuration = json.getInt("controlMinDuration");
-            maxDuration = json.getInt("controlMaxDuration");
-        }
-
-        SetPhasingOnlyAttachment(TransactionType txType, ByteBuffer buffer)
-                    throws BufferUnderflowException, IllegalArgumentException {
-            super(txType, buffer);
-            phasingParams = new PhasingParameters(buffer);
-            int count = buffer.get();
-            maxFees = new TreeMap<>();
-            for (int i=0; i<count; i++) {
-                int chainId = buffer.getInt();
-                Chain chain = Nxt.getChain(chainId);
-                if (chain == null)
-                    throw new IllegalArgumentException("Chain '" + chainId + "' is not defined");
-                maxFees.put(chain, buffer.getLong());
-            }
-            minDuration = buffer.getShort();
-            maxDuration = buffer.getShort();
-        }
-
-        /**
-         * Get the phasing parameters
-         *
-         * @return                  Phasing parameters
-         */
-        public PhasingParameters getPhasingParams() {
-            return phasingParams;
-        }
-
-        /**
-         * Get the maximum fee for each chain
-         *
-         * @return                  Maximum fees
-         */
-        public SortedMap<Chain, Long> getMaxFees() {
-            return maxFees;
-        }
-
-        /**
-         * Get the minimum duration
-         *
-         * @return                  Minimum duration
-         */
-        public int getMinDuration() {
-            return minDuration;
-        }
-
-        /**
-         * Get the maximum duration
-         *
-         * @return                  Maximum duration
-         */
-        public int getMaxDuration() {
-            return maxDuration;
-        }
-
-        /**
-         * Return a string representation of this attachment
-         *
-         * @param   sb              String builder
-         * @return                  The supplied string builder
-         */
-        @Override
-        public StringBuilder toString(StringBuilder sb) {
-            super.toString(sb);
-            phasingParams.toString(sb);
-            if (!maxFees.isEmpty()) {
-                maxFees.entrySet().forEach(entry ->
-                    sb.append("  ").append(entry.getKey().getName()).append(":  ")
-                        .append(entry.getValue()).append("\n"));
-            }
-            sb.append("  Minimum Duration:  ").append(minDuration).append("\n")
-                    .append("  Maximum Duration:  ").append(maxDuration).append("\n");
             return sb;
         }
     }
