@@ -587,11 +587,39 @@ public class Nxt {
      * @throws      IOException             Unable to issue Nxt API request
      * @throws      NxtException            Nxt server returned an error
      */
-    public static Response getBalance(long accountId, Chain chain) throws IOException {
-        return issueRequest("getBalance",
+    public static Balance getBalance(long accountId, Chain chain) throws IOException {
+        return new Balance(issueRequest("getBalance",
                 String.format("account=%s&chain=%s",
                         Utils.idToString(accountId), chain.getName()),
-                DEFAULT_READ_TIMEOUT);
+                DEFAULT_READ_TIMEOUT));
+    }
+
+    /**
+     * Get the account balance for each chain.  The return map will have the
+     * chain identifier as the key and the balance as the value.
+     *
+     * @param       accountId               Account identifier
+     * @return                              Account balance map
+     * @throws      IOException             Unable to issue Nxt API request
+     * @throws      NxtException            Nxt server returned an error
+     */
+    @SuppressWarnings("unchecked")
+    public static Map<Integer, Balance> getBalances(long accountId) throws IOException {
+        StringBuilder sb = new StringBuilder(64);
+        sb.append("account=").append(Utils.idToString(accountId));
+        chains.values().forEach(chain -> sb.append("&chain=").append(chain.getName()));
+        Response response = issueRequest("getBalances", sb.toString(), DEFAULT_READ_TIMEOUT);
+        Map<Integer, Balance> balanceMap = new HashMap<>();
+        response.getObjectMap().entrySet().forEach(entry -> {
+            try {
+                int chainId = Integer.valueOf(entry.getKey());
+                Response balance = new Response((JSONObject<String, Object>)entry.getValue());
+                balanceMap.put(chainId, new Balance(balance));
+            } catch (NumberFormatException exc) {
+                // ignore 'requestProcessingTime'
+            }
+        });
+        return balanceMap;
     }
 
     /**
