@@ -610,14 +610,10 @@ public class Nxt {
         chains.values().forEach(chain -> sb.append("&chain=").append(chain.getName()));
         Response response = issueRequest("getBalances", sb.toString(), DEFAULT_READ_TIMEOUT);
         Map<Integer, Balance> balanceMap = new HashMap<>();
-        response.getObjectMap().entrySet().forEach(entry -> {
-            try {
-                int chainId = Integer.valueOf(entry.getKey());
-                Response balance = new Response((JSONObject<String, Object>)entry.getValue());
-                balanceMap.put(chainId, new Balance(balance));
-            } catch (NumberFormatException exc) {
-                // ignore 'requestProcessingTime'
-            }
+        response.getObject("balances").getObjectMap().entrySet().forEach(entry -> {
+            int chainId = Integer.valueOf(entry.getKey());
+            Response balance = new Response((JSONObject<String, Object>)entry.getValue());
+            balanceMap.put(chainId, new Balance(balance));
         });
         return balanceMap;
     }
