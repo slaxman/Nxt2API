@@ -193,6 +193,15 @@ public class Nxt {
     }
 
     /**
+     * Get the current time based on the Nxt epoch
+     *
+     * @return                      Current time
+     */
+    public static int getEpochTime() {
+        return (int)((System.currentTimeMillis() - epochBeginning + 500L) / 1000L);
+    }
+
+    /**
      * Get all of the Nxt chains
      *
      * @return                      Chain collection
