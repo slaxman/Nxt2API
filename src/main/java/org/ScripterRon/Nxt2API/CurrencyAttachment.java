@@ -66,9 +66,9 @@ public abstract class CurrencyAttachment {
             code = json.getString("code");
             description = json.getString("description");
             type = json.getInt("type");
-            initialSupply = json.getLong("initialSupply");
-            reserveSupply = json.getLong("reserveSupply");
-            maxSupply = json.getLong("maxSupply");
+            initialSupply = json.getLong("initialSupplyQNT");
+            reserveSupply = json.getLong("reserveSupplyQNT");
+            maxSupply = json.getLong("maxSupplyQNT");
             issuanceHeight = json.getInt("issuanceHeight");
             minReserve = json.getLong("minReservePerUnitNQT");
             minDifficulty = json.getInt("minDifficulty");
@@ -354,7 +354,7 @@ public abstract class CurrencyAttachment {
                     throws IdentifierException, NumberFormatException {
             super(txType, json);
             currencyId = json.getId("currency");
-            units = json.getLong("units");
+            units = json.getLong("unitsQNT");
         }
 
         ReserveClaimAttachment(TransactionType txType, ByteBuffer buffer)
@@ -426,7 +426,7 @@ public abstract class CurrencyAttachment {
                     throws IdentifierException, NumberFormatException {
             super(txType, json);
             currencyId = json.getId("currency");
-            units = json.getLong("units");
+            units = json.getLong("unitsQNT");
         }
 
         TransferAttachment(TransactionType txType, ByteBuffer buffer)
@@ -506,10 +506,10 @@ public abstract class CurrencyAttachment {
             currencyId = json.getId("currency");
             buyRate = json.getLong("buyRateNQT");
             sellRate = json.getLong("sellRateNQT");
-            totalBuyLimit = json.getLong("totalBuyLimit");
-            totalSellLimit = json.getLong("totalSellLimit");
-            initialBuySupply = json.getLong("initialBuySupply");
-            initialSellSupply = json.getLong("initialSellSupply");
+            totalBuyLimit = json.getLong("totalBuyLimitQNT");
+            totalSellLimit = json.getLong("totalSellLimitQNT");
+            initialBuySupply = json.getLong("initialBuySupplyQNT");
+            initialSellSupply = json.getLong("initialSellSupplyQNT");
             expirationHeight = json.getInt("expirationHeight");
         }
 
@@ -651,7 +651,7 @@ public abstract class CurrencyAttachment {
             super(txType, json);
             currencyId = json.getId("currency");
             rate = json.getLong("rateNQT");
-            units = json.getLong("units");
+            units = json.getLong("unitsQNT");
         }
 
         ExchangeBuyAttachment(TransactionType txType, ByteBuffer buffer)
@@ -738,7 +738,7 @@ public abstract class CurrencyAttachment {
             super(txType, json);
             currencyId = json.getId("currency");
             rate = json.getLong("rateNQT");
-            units = json.getLong("units");
+            units = json.getLong("unitsQNT");
         }
 
         ExchangeSellAttachment(TransactionType txType, ByteBuffer buffer)
@@ -883,7 +883,7 @@ public abstract class CurrencyAttachment {
             super(txType, json);
             nonce = json.getLong("nonce");
             currencyId = json.getId("currency");
-            units = json.getLong("units");
+            units = json.getLong("unitsQNT");
             counter = json.getLong("counter");
         }
 

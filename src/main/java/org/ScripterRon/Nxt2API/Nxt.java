@@ -479,7 +479,7 @@ public class Nxt {
     public static Response currencyMint(long currencyId, Chain chain, long nonce, long units,
                     long counter, long fee, byte[] publicKey) throws IOException {
         return issueRequest("currencyMint",
-                String.format("currency=%s&chain=%s&nonce=%d&units=%d&counter=%d&"
+                String.format("currency=%s&chain=%s&nonce=%d&unitsQNT=%d&counter=%d&"
                                 + "feeNQT=%s&publicKey=%s&deadline=90&broadcast=false",
                         Utils.idToString(currencyId), chain.getName(),
                         nonce, units, counter, Long.toUnsignedString(fee),
@@ -552,7 +552,7 @@ public class Nxt {
      *
      * @param       chain                   Chain
      * @param       exchangeChain           Exchange chain
-     * @param       amount                  Exchange amount
+     * @param       quantity                Exchange quantity
      * @param       price                   Exchange price
      * @param       fee                     Transaction fee
      * @param       rate                    Bundler rate
@@ -561,13 +561,13 @@ public class Nxt {
      * @throws      IOException             Unable to issue Nxt API request
      * @throws      NxtException            Nxt server returned an error
      */
-    public static Response exchangeCoins(Chain chain, Chain exchangeChain, long amount, long price,
+    public static Response exchangeCoins(Chain chain, Chain exchangeChain, long quantity, long price,
                     long fee, long rate, byte[] publicKey) throws IOException {
         return issueRequest("exchangeCoins",
-                String.format("chain=%s&exchange=%s&amountNQT=%s&priceNQT=%s&feeNQT=%s&"
+                String.format("chain=%s&exchange=%s&quantityQNT=%s&priceNQT=%s&feeNQT=%s&"
                             + "feeRateNQTPerFXT=%s&publicKey=%s&deadline=90&broadcast=false",
                         chain.getName(), exchangeChain.getName(),
-                        Long.toUnsignedString(amount), Long.toUnsignedString(price),
+                        Long.toUnsignedString(quantity), Long.toUnsignedString(price),
                         Long.toUnsignedString(fee), Long.toUnsignedString(rate),
                         Utils.toHexString(publicKey)),
                 DEFAULT_READ_TIMEOUT);
@@ -808,7 +808,7 @@ public class Nxt {
      */
     public static Response getMintingTarget(long currencyId, long accountId, long units) throws IOException {
         return issueRequest("getMintingTarget",
-                String.format("currency=%s&account=%s&units=%d",
+                String.format("currency=%s&account=%s&unitsQNT=%d",
                         Utils.idToString(currencyId), Utils.idToString(accountId), units),
                 DEFAULT_READ_TIMEOUT);
     }
