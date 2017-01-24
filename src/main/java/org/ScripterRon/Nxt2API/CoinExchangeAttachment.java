@@ -129,7 +129,7 @@ public abstract class CoinExchangeAttachment {
             super.toString(sb);
             sb.append("  Chain:  ").append(chain.getName()).append("\n")
                     .append("  Exchange Chain:  ").append(exchangeChain.getName()).append("\n")
-                    .append("  Amount:  ").append(Utils.nqtToString(amount, chain.getDecimals())).append("\n")
+                    .append("  Amount:  ").append(Utils.nqtToString(amount, exchangeChain.getDecimals())).append("\n")
                     .append("  Price:  ").append(Utils.nqtToString(price, chain.getDecimals())).append("\n");
             return sb;
         }
