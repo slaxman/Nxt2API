@@ -59,7 +59,7 @@ public abstract class CoinExchangeAttachment {
             exchangeChain = Nxt.getChain(chainId);
             if (exchangeChain == null)
                 throw new IllegalArgumentException("Exchange chain " + chainId + " is not defined");
-            amount = response.getLong("amountNQT");
+            amount = response.getLong("quantityQNT");
             price = response.getLong("priceNQT");
         }
 
