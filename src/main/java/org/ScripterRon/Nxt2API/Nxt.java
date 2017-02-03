@@ -482,7 +482,7 @@ public class Nxt {
                 String.format("currency=%s&chain=%s&nonce=%d&unitsQNT=%d&counter=%d&"
                                 + "feeNQT=%s&publicKey=%s&deadline=90&broadcast=false",
                         Utils.idToString(currencyId), chain.getName(),
-                        nonce, units, counter, Long.toUnsignedString(fee),
+                        nonce, units, counter, String.valueOf(fee),
                         Utils.toHexString(publicKey)),
                 DEFAULT_READ_TIMEOUT);
     }
@@ -567,8 +567,8 @@ public class Nxt {
                 String.format("chain=%s&exchange=%s&quantityQNT=%s&priceNQT=%s&feeNQT=%s&"
                             + "feeRateNQTPerFXT=%s&publicKey=%s&deadline=90&broadcast=false",
                         chain.getName(), exchangeChain.getName(),
-                        Long.toUnsignedString(quantity), Long.toUnsignedString(price),
-                        Long.toUnsignedString(fee), Long.toUnsignedString(rate),
+                        String.valueOf(quantity), String.valueOf(price),
+                        String.valueOf(fee), String.valueOf(rate),
                         Utils.toHexString(publicKey)),
                 DEFAULT_READ_TIMEOUT);
     }
@@ -896,8 +896,8 @@ public class Nxt {
                                 + "publicKey=%s&message=%s&messageIsText=true&messageIsPrunable=true&"
                                 + "deadline=90&broadcast=false",
                         Utils.idToString(recipientId), chain.getName(),
-                                Long.toUnsignedString(amount), Long.toUnsignedString(fee),
-                                Long.toUnsignedString(exchangeRate), Utils.toHexString(publicKey),
+                                String.valueOf(amount), String.valueOf(fee),
+                                String.valueOf(exchangeRate), Utils.toHexString(publicKey),
                                 message),
                 DEFAULT_READ_TIMEOUT);
         } else {
@@ -905,8 +905,8 @@ public class Nxt {
                 String.format("recipient=%s&chain=%s&amountNQT=%s&feeNQT=%s&feeRateNQTPerFXT=%s&"
                                 + "publicKey=%s&deadline=90&broadcast=false",
                         Utils.idToString(recipientId), chain.getName(),
-                                Long.toUnsignedString(amount), Long.toUnsignedString(fee),
-                                Long.toUnsignedString(exchangeRate), Utils.toHexString(publicKey)),
+                                String.valueOf(amount), String.valueOf(fee),
+                                String.valueOf(exchangeRate), Utils.toHexString(publicKey)),
                 DEFAULT_READ_TIMEOUT);
         }
     }
