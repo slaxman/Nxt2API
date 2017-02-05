@@ -564,7 +564,7 @@ public class Nxt {
     public static Response exchangeCoins(Chain chain, Chain exchangeChain, long quantity, long price,
                     long fee, long rate, byte[] publicKey) throws IOException {
         return issueRequest("exchangeCoins",
-                String.format("chain=%s&exchange=%s&quantityQNT=%s&priceNQT=%s&feeNQT=%s&"
+                String.format("chain=%s&exchange=%s&quantityQNT=%s&priceNQTPerCoin=%s&feeNQT=%s&"
                             + "feeRateNQTPerFXT=%s&publicKey=%s&deadline=90&broadcast=false",
                         chain.getName(), exchangeChain.getName(),
                         String.valueOf(quantity), String.valueOf(price),

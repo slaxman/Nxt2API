@@ -650,7 +650,7 @@ public abstract class CurrencyAttachment {
                     throws IdentifierException, NumberFormatException {
             super(txType, json);
             currencyId = json.getId("currency");
-            rate = json.getLong("rateNQT");
+            rate = json.getLong("rateNQTPerUnit");
             units = json.getLong("unitsQNT");
         }
 
@@ -737,7 +737,7 @@ public abstract class CurrencyAttachment {
                     throws IdentifierException, NumberFormatException {
             super(txType, json);
             currencyId = json.getId("currency");
-            rate = json.getLong("rateNQT");
+            rate = json.getLong("rateNQTPerUnit");
             units = json.getLong("unitsQNT");
         }
 

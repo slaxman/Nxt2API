@@ -222,7 +222,7 @@ public abstract class AssetAttachment {
             super(txType, json);
             assetId = json.getId("asset");
             quantity = json.getLong("quantityQNT");
-            price = json.getLong("priceNQT");
+            price = json.getLong("priceNQTPerShare");
         }
 
         AskOrderPlacementAttachment(TransactionType txType, ByteBuffer buffer)
@@ -307,7 +307,7 @@ public abstract class AssetAttachment {
             super(txType, json);
             assetId = json.getId("asset");
             quantity = json.getLong("quantityQNT");
-            price = json.getLong("priceNQT");
+            price = json.getLong("priceNQTPerShare");
         }
 
         BidOrderPlacementAttachment(TransactionType txType, ByteBuffer buffer)
@@ -523,6 +523,8 @@ public abstract class AssetAttachment {
         private long assetId;
         private int height;
         private long dividendAmount;
+        private long holdingId;
+        private int holdingType;
 
         DividendPaymentAttachment() {
         }
@@ -532,12 +534,16 @@ public abstract class AssetAttachment {
             super(txType, json);
             assetId = json.getId("asset");
             height = json.getInt("height");
-            dividendAmount = json.getLong("amountNQTPerQNT");
+            dividendAmount = json.getLong("amountNQTPerShare");
+            holdingId = json.getId("holding");
+            holdingType = json.getInt("holdingType");
         }
 
         DividendPaymentAttachment(TransactionType txType, ByteBuffer buffer)
                     throws BufferUnderflowException, IllegalArgumentException {
             super(txType, buffer);
+            holdingId = buffer.getLong();
+            holdingType = buffer.get();
             assetId = buffer.getLong();
             height = buffer.getInt();
             dividendAmount = buffer.getLong();
@@ -562,12 +568,30 @@ public abstract class AssetAttachment {
         }
 
         /**
-         * Get the dividend amount expressed as NQT per QNT
+         * Get the dividend amount expressed as NQT per share
          *
          * @return                  Dividend amount
          */
         public long getDividendAmount() {
             return dividendAmount;
+        }
+
+        /**
+         * Get the holding identifier
+         *
+         * @return                  Holding identifier
+         */
+        public long getHoldingId() {
+            return holdingId;
+        }
+
+        /**
+         * Get the holding type
+         *
+         * @return                  Holding type
+         */
+        public int getHoldingType() {
+            return holdingType;
         }
 
         /**
@@ -581,7 +605,9 @@ public abstract class AssetAttachment {
             super.toString(sb);
             sb.append("  Asset:  ").append(Utils.idToString(assetId)).append("\n")
                     .append("  Height:  ").append(height).append("\n")
-                    .append("  Dividend:  ").append(String.format("%,d", dividendAmount)).append("\n");
+                    .append("  Dividend:  ").append(String.format("%,d", dividendAmount)).append("\n")
+                    .append("  Holding:  ").append(Utils.idToString(holdingId)).append("\n")
+                    .append("  Holding Type:  ").append(Nxt.getHoldingType(holdingType)).append("\n");
             return sb;
         }
     }

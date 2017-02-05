@@ -60,7 +60,7 @@ public abstract class CoinExchangeAttachment {
             if (exchangeChain == null)
                 throw new IllegalArgumentException("Exchange chain " + chainId + " is not defined");
             amount = response.getLong("quantityQNT");
-            price = response.getLong("priceNQT");
+            price = response.getLong("priceNQTPerCoin");
         }
 
         OrderIssueAttachment(TransactionType txType, ByteBuffer buffer)
