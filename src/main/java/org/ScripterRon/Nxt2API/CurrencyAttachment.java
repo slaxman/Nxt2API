@@ -504,8 +504,8 @@ public abstract class CurrencyAttachment {
                     throws IdentifierException, NumberFormatException {
             super(txType, json);
             currencyId = json.getId("currency");
-            buyRate = json.getLong("buyRateNQT");
-            sellRate = json.getLong("sellRateNQT");
+            buyRate = json.getLong("buyRateNQTPerUnit");
+            sellRate = json.getLong("sellRateNQTPerUnit");
             totalBuyLimit = json.getLong("totalBuyLimitQNT");
             totalSellLimit = json.getLong("totalSellLimitQNT");
             initialBuySupply = json.getLong("initialBuySupplyQNT");
